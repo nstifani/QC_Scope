@@ -1913,7 +1913,7 @@ Output_Simple_Data_CSV_Path = Generate_Unique_Filepath(Output_Dir, Function_Name
 with open(Output_Data_CSV_Path, 'r') as Input_File:
 	Reader = csv.reader(Input_File, delimiter=',', lineterminator='\n')
 	Header = next(Reader)
-	Selected_Columns = [0, 1, 2, 4, 13, 14, 15, 16, 29, 30, 31, 32, 33, 34, 35, 36, 39]
+	Selected_Columns = [0, 1, 2, 4, 13, 14, 15, 28, 29, 30, 31, 32, 33, 34, 35, 36, 39]
 
 #0.  Filename
 #1.  Channel_Nb
