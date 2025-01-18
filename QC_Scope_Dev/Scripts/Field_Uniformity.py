@@ -438,7 +438,7 @@ def Process_Image(imp, Data_All_Files, Processed_Images_List, Batch_Message):
 			"Field_Uniformity.Prolix_Mode"
 			]:
 				Field_Uniformity_Settings_Stored_Filtered[key] = value
-		
+
 		Field_Uniformity_User_Filtered = {}
 		for key, value in Field_Uniformity_User.items():
 			if key not in [
@@ -447,7 +447,7 @@ def Process_Image(imp, Data_All_Files, Processed_Images_List, Batch_Message):
 			"Field_Uniformity.Prolix_Mode"
 			]:
 				Field_Uniformity_User_Filtered[key] = value
-			
+
 
 
 		# All conditions must be fulfilled to proceed
@@ -1185,6 +1185,8 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 		global User_Click
 		User_Click = "OK"
 	OK_Button.addActionListener(On_OK)
+
+	OK_Button.requestFocusInWindow()
 	Constraints.gridx = Pos_X + 4
 	Constraints.gridy = Pos_Y
 	Constraints.gridwidth = 1
@@ -1192,7 +1194,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	Constraints.anchor = GridBagConstraints.CENTER
 	Constraints.insets = Insets(2, 2, 2, 2)
 	Processing_Panel.add(OK_Button, Constraints)
-
+	Processing_Dialog.getRootPane().setDefaultButton(OK_Button)
 	Processing_Dialog.add(Processing_Panel)
 	Processing_Dialog.pack()
 	Processing_Dialog.setLocationRelativeTo(None)
@@ -1641,7 +1643,7 @@ def Bin_Image_Iso_Intensity(imp, Channel, Display, Nb_Bins=10, Final_Bin_Size=25
 	if Field_Uniformity_Settings_Stored["Field_Uniformity.Gaussian_Blur"]:
 		Duplicated_Ch_imp.setRoi(None)
 		Apply_Gaussian_Blur(Duplicated_Ch_imp, Display)
-	
+
 	Duplicated_Ch_imp.setRoi(None)
 	ip, Min, Max, Mean, Std_Dev, Median, Hist, Mode, nPixels = Get_Image_Statistics(Duplicated_Ch_imp)
 
@@ -1792,7 +1794,7 @@ def Bin_Image_Iso_Density(imp, Channel, Display, Nb_Bins=10, Final_Bin_Size=25):
 	if Nb_Roi > 0:
 		Roi_Manager.close()
 		#Roi_Manager.reset()
-	
+
 	# Loop through each bin
 	for y in range(0, len(Lower_Thresholds)):
 		Lower_Threshold_Value = Lower_Thresholds[y]
@@ -1809,7 +1811,7 @@ def Bin_Image_Iso_Density(imp, Channel, Display, Nb_Bins=10, Final_Bin_Size=25):
 	Roi_Manager = RoiManager.getInstance()
 	if Roi_Manager is None:
 		Roi_Manager = RoiManager()
-	
+
 	Nb_Roi = Roi_Manager.getCount()
 	if Nb_Roi > 0:
 		for Roi_Index in range(Roi_Manager.getCount()):
@@ -1825,7 +1827,7 @@ def Bin_Image_Iso_Density(imp, Channel, Display, Nb_Bins=10, Final_Bin_Size=25):
 	if Nb_Roi > 0:
 		Roi_Manager.close()
 		#Roi_Manager.reset()
-	
+
 	Duplicated_Ch_imp.setRoi(None)
 	IJ.run(Duplicated_Ch_imp, "8-bit", "");
 	IJ.run(Duplicated_Ch_imp, "Grays", "");
@@ -1913,11 +1915,12 @@ def Bin_Image_Iso_Density(imp, Channel, Display, Nb_Bins=10, Final_Bin_Size=25):
 # Initializing or Resetting preferences
 Initialize_Preferences(Settings_Templates_List, Reset_Preferences)
 
+# Get some images Opened or Selected from a folder
+Image_List = Get_Images()
+
 # Checking and eventually Creating Output Directory
 if not os.path.exists(Output_Dir): os.makedirs(Output_Dir)
 
-# Get some images Opened or Selected from a folder
-Image_List = Get_Images()
 
 # Process the List of Images
 Data_All_Files, Processed_Images_List = Process_Image_List(Image_List)
@@ -1940,13 +1943,67 @@ Merged_Output_File.close()
 # Data_File is a list of dictionaries
 # Data_All_Files is a list of a list of dictionnaries
 
+
 # Saving Essential Data
 Output_Simple_Data_CSV_Path = Generate_Unique_Filepath(Output_Dir, Function_Name + "_Essential-Data", "Merged", ".csv")
-#with open(Output_Data_CSV_Path, 'r') as Input_File:
 Input_File = open(Output_Data_CSV_Path, 'r')
 Reader = csv.reader(Input_File, delimiter=',', lineterminator='\n')
 Header = next(Reader)
+
+# Adjust this index to the column containing the filenames
+Filename_Column_Index = 0  # Example: 0 for the first column
 Selected_Columns = [0, 1, 2, 4, 13, 14, 15, 28, 29, 30, 31, 32, 33, 34, 35, 36, 39]
+
+# Select header for output
+Selected_Header = [Header[i] for i in Selected_Columns]
+
+# Prepare to handle dynamic variable columns
+Max_Variable_Count = 0
+Processed_Rows = []
+
+# First pass: Process rows to determine maximum filename parts
+for Row in Reader:
+	Filename = Row[Filename_Column_Index]
+	Filename_Parts = Filename.split("_")  # Split the filename
+	if "." in Filename_Parts[-1]:
+		Filename_Parts[-1] = os.path.splitext(Filename_Parts[-1])[0]  # Use os.path.splitext or split manually
+
+	Max_Variable_Count = max(Max_Variable_Count, len(Filename_Parts))
+	Selected_Row = [Row[i] for i in Selected_Columns]
+	Processed_Rows.append((Selected_Row, Filename_Parts))
+
+# Generate variable column headers
+Variable_Columns = ["Filename-Variable-{0:03d}".format(i + 1) for i in range(Max_Variable_Count)]
+
+# Update the header: Insert variable columns right after the filename column
+Filename_Output_Index = Selected_Columns.index(Filename_Column_Index)
+Updated_Header = (
+	Selected_Header[:Filename_Output_Index + 1] +
+	Variable_Columns +
+	Selected_Header[Filename_Output_Index + 1:]
+)
+
+# Write the updated data
+Output_File = open(Output_Simple_Data_CSV_Path, 'w')
+CSV_Writer = csv.writer(Output_File, delimiter=',', lineterminator='\n')
+CSV_Writer.writerow(Updated_Header)  # Write the header
+
+# Second pass: Write rows with padding for variable columns
+for Selected_Row, Filename_Parts in Processed_Rows:
+	# Pad Filename_Parts with empty strings if fewer than Max_Variable_Count
+	Padded_Filename_Parts = Filename_Parts + [""] * (Max_Variable_Count - len(Filename_Parts))
+	# Insert the variables right after the filename
+	Final_Row = (
+		Selected_Row[:Filename_Output_Index + 1] +
+		Padded_Filename_Parts +
+		Selected_Row[Filename_Output_Index + 1:]
+	)
+	CSV_Writer.writerow(Final_Row)
+
+Output_File.close()
+Input_File.close()
+
+
 
 #0.  Filename
 #1.  Channel_Nb
@@ -1988,17 +2045,6 @@ Selected_Columns = [0, 1, 2, 4, 13, 14, 15, 28, 29, 30, 31, 32, 33, 34, 35, 36, 
 #37. X_Ref
 #38. Y_Ref
 #39. Centering_Accuracy
-
-Selected_Header = [Header[i] for i in Selected_Columns]
-#with open(Output_Simple_Data_CSV_Path, 'w') as Output_File:
-Output_File = open(Output_Simple_Data_CSV_Path, 'w')
-CSV_Writer = csv.writer(Output_File, delimiter = ',', lineterminator = '\n')
-CSV_Writer.writerow(Selected_Header) # Write the header
-for Row in Reader: # Get the data from the Saved Full data CSV File
-	Selected_Row = [Row[i] for i in Selected_Columns]
-	CSV_Writer.writerow(Selected_Row)
-Output_File.close()
-Input_File.close()
 
 # Log the success message indicating the number of processed images
 Message = Function_Name + " has been completed.\n" + str(len(Processed_Images_List)) + " images have been processed successfully."
