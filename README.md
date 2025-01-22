@@ -6,6 +6,8 @@ FIJI
 Trackmate
 Bio-formats
 
-How to use it and details about the plugin here : [https://wiki.umontreal.ca/pages/viewpage.action?pageId=367362343](url)
+How to use it and details about the plugin here :
+https://wiki.umontreal.ca/pages/viewpage.action?pageId=367362343
+
 
 
