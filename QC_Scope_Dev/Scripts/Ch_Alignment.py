@@ -702,9 +702,23 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 		Label = Message
 		J_Label = JLabel(Label)
 		J_Label.setFont(Font("Arial", Font.BOLD, 12))
-		J_Label.setForeground(Color.BLACK)
+		J_Label.setForeground(Color.BLUE)
 		Processing_Panel.add(J_Label, Constraints)
-
+		Pos_Y += 1
+	elif  all(Spot == 1 for Spot in Nb_Detected_Spot_File):
+		Message = "Detection successful. 1 Spot per Channel. "
+		Constraints.gridx = Pos_X
+		Constraints.gridy = Pos_Y
+		Constraints.gridwidth = GridBagConstraints.REMAINDER
+		Constraints.gridheight = 1
+		Constraints.anchor = GridBagConstraints.CENTER
+		Constraints.insets = Insets(2, 2, 2, 2)
+		Label = Message
+		J_Label = JLabel(Label)
+		J_Label.setFont(Font("Arial", Font.BOLD, 12))
+		Dark_Green = Color(20, 200, 20)
+		J_Label.setForeground(Dark_Green)
+		Processing_Panel.add(J_Label, Constraints)
 		Pos_Y += 1
 
 	# Error label
@@ -1419,11 +1433,11 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	Processing_Dialog.add(Processing_Panel)
 
 	Processing_Dialog.pack()
-#	Screen_Size = Toolkit.getDefaultToolkit().getScreenSize()
-#	Screen_Width = Screen_Size.width
-#	Screen_Height = Screen_Size.height
-#	Processing_Dialog.setLocation(Screen_Width/2, 0)
-	Processing_Dialog.setLocationRelativeTo(None) # Center the dialog
+	Screen_Size = Toolkit.getDefaultToolkit().getScreenSize()
+	Screen_Width = Screen_Size.width
+	Screen_Height = Screen_Size.height
+	Processing_Dialog.setLocation(Screen_Width/2, 0)
+#	Processing_Dialog.setLocationRelativeTo(None) # Center the dialog
 	Processing_Dialog.setVisible(True)
 
 	while Processing_Dialog.isVisible():
