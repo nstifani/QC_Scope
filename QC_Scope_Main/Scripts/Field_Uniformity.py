@@ -452,7 +452,7 @@ def Process_Image_List(Image_List):
 		else:
 			Field_Uniformity_Settings_Stored = Read_Preferences(Settings_Templates_List["Field_Uniformity_Settings_Template"])
 			if Field_Uniformity_Settings_Stored["Field_Uniformity.Batch_Mode"]:
-				rolix_Message("Processing in batch {}.".format(Image_Name))
+				Prolix_Message("Processing in batch {}.".format(Image_Name))
 				Data_All_Files, Processed_Images_List = Process_Image_Batch(imp, Data_All_Files, Processed_Images_List)
 
 			else:
@@ -1543,11 +1543,11 @@ def Measure_Uniformity_Single_Channel(imp, Channel, Save_File, Display):
 
 	ip, Min, Max, Mean, Std_Dev, Median, Hist, Mode, nPixels = Get_Image_Statistics(imp)
 
-	Uniformity_Std = round(Calculate_Uniformity_Std(imp), 1)
-	Uniformity_Percentile = round(Calculate_Uniformity_Percentile(imp, Percentile=0.05), 1)
+	Uniformity_Std = Calculate_Uniformity_Std(imp)
+	Uniformity_Percentile = Calculate_Uniformity_Percentile(imp, Percentile=0.05)
 	CV = Calculate_CV(imp)
 	if CV <= 1:
-		Uniformity_CV = round(Calculate_Uniformity_CV(CV), 1)
+		Uniformity_CV = Calculate_Uniformity_CV(CV)
 	else:
 		Uniformity_CV = "Too high"
 
@@ -1557,7 +1557,7 @@ def Measure_Uniformity_Single_Channel(imp, Channel, Save_File, Display):
 		Duplicated_Ch_imp, X_Ref, Y_Ref, X_Ref_Pix, Y_Ref_Pix = Bin_Image_Iso_Density(imp, Channel, Display, Nb_Bins = 10, Final_Bin_Size = 25)
 
 
-	Centering_Accuracy = round(Calculate_Centering_Accuracy(imp, X_Ref_Pix, Y_Ref_Pix),1)
+	Centering_Accuracy = Calculate_Centering_Accuracy(imp, X_Ref_Pix, Y_Ref_Pix)
 
 	Data_Ch = {
 	"Filename": Image_Info["Filename"],
@@ -1573,8 +1573,8 @@ def Measure_Uniformity_Single_Channel(imp, Channel, Save_File, Display):
 	"Prolix_Mode": Field_Uniformity_Settings_Stored["Field_Uniformity.Prolix_Mode"],
 	"Intensity_Min": Min,
 	"Intensity_Max": Max,
-	"Intensity_Mean": "%.1f" % round(Mean,1),
-	"Intensity_Std_Dev": "%.1f" % round(Std_Dev,1),
+	"Intensity_Mean": "%.1f" % Mean,
+	"Intensity_Std_Dev": "%.1f" % Std_Dev,
 	"Intensity_Median": Median,
 	"Intensity_Mode": Mode,
 	"Width_Pix": Image_Info["Width"],
@@ -1586,17 +1586,17 @@ def Measure_Uniformity_Single_Channel(imp, Channel, Save_File, Display):
 	"Space_Unit": Image_Info["Space_Unit"],
 	"Space_Unit_Std": Image_Info["Space_Unit_Std"],
 	"Calibration_Status": Image_Info["Calibration_Status"],
-	"Std_Dev": "%.1f" % round(Std_Dev, 1),
+	"Std_Dev": "%.1f" % Std_Dev,
 	"Uniformity_Std": "%.1f" % Uniformity_Std,
 	"Uniformity_Percentile": "%.1f" % Uniformity_Percentile,
-	"CV": "%.1f" % round(CV,4),
+	"CV": "%.4f" % CV,
 	"Uniformity_CV": "%.1f" % Uniformity_CV,
 	"X_Center_Pix": Image_Info["Width"]/2,
 	"Y_Center_Pix": Image_Info["Height"]/2,
-	"X_Ref_Pix": round(X_Ref_Pix,0),
-	"Y_Ref_Pix": round(Y_Ref_Pix,0),
-	"X_Ref": "%.3f" % round(X_Ref,3 ),
-	"Y_Ref": "%.3f" % round(Y_Ref,3),
+	"X_Ref_Pix": "%.1f" %X_Ref_Pix,
+	"Y_Ref_Pix": "%.1f" % Y_Ref_Pix,
+	"X_Ref": "%.3f" % X_Ref,
+	"Y_Ref": "%.3f" % Y_Ref,
 	"Centering_Accuracy": "%.1f" % Centering_Accuracy,
 	}
 
