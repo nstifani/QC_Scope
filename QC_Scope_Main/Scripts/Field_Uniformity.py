@@ -50,49 +50,47 @@ Image_Valid_Extensions = (".tif", ".tiff", ".jpg", ".jpeg", ".png", ".czi", ".nd
 
 # Dictionary providing Space units and conversion to a standard
 Space_Unit_Conversion_Dictionary = {
-	"micron": Unicode_Micron_Symbol + "m",
-	"microns":Unicode_Micron_Symbol + "m",
-	Unicode_Micron_Symbol + "m": Unicode_Micron_Symbol + "m",
-	"um": Unicode_Micron_Symbol + "m",
-	"u": Unicode_Micron_Symbol + "m",
-	"nm": "nm",
-	"nanometer": "nm",
-	"nanometers": "nm",
-	"mm": "mm",
-	"millimeter": "mm",
-	"millimeters": "mm",
-	"cm": "cm",
-	"centimeter": "cm",
-	"centimeters": "cm",
-	"m": "m",
-	"meter": "m",
-	"meters": "m",
-	"inch": "in",
-	"inches": "in",
-	"in": "in",
-	"pixel": "pixels",
-	"pixels": "pixels",
-	"": "pixels",
-	}
+ "micron": Unicode_Micron_Symbol + "m",
+ "microns": Unicode_Micron_Symbol + "m",
+ Unicode_Micron_Symbol + "m": Unicode_Micron_Symbol + "m",
+ "um": Unicode_Micron_Symbol + "m",
+ "u": Unicode_Micron_Symbol + "m",
+ u"\u00B5m": Unicode_Micron_Symbol + "m",
+ "nm": "nm",
+ "nanometer": "nm",
+ "nanometers": "nm",
+ "mm": "mm",
+ "millimeter": "mm",
+ "millimeters": "mm",
+ "cm": "cm",
+ "centimeter": "cm",
+ "centimeters": "cm",
+ "m": "m",
+ "meter": "m",
+ "meters": "m",
+ "inch": "in",
+ "inches": "in",
+ "in": "in",
+ "pixel": "pixels",
+ "pixels": "pixels",
+ "": "pixels",
+ " ": "pixels",
+}
+
 
 # Dictionnary of Settings
-Settings_Templates_List={
-"Field_Uniformity_Settings_Template": {
-	"Field_Uniformity.Gaussian_Blur": True,
-	"Field_Uniformity.Gaussian_Sigma": 10.0,
-	"Field_Uniformity.Binning_Method": "Iso-Density",
-	"Field_Uniformity.Batch_Mode": True,
-	"Field_Uniformity.Save_Individual_Files": False,
-	"Field_Uniformity.Prolix_Mode": False
-	},
-
-"Microscope_Settings_Template": {
-	"Field_Uniformity.Microscope.Objective_Mag": "5x",
-	"Field_Uniformity.Microscope.Objective_NA": 1.0,
-	"Field_Uniformity.Microscope.Objective_Immersion": "Air",
-	"Field_Uniformity.Microscope.Channel_Names": ["DAPI", "Alexa488", "Alexa555", "Alexa647", "Alexa730","Alexa731","Alexa732","Alexa733"],
-	"Field_Uniformity.Microscope.Channel_WavelengthsEM": [425, 488, 555, 647, 730, 731, 732, 733]
-	}
+Settings_Template = {
+	Function_Name + ".Gaussian_Blur": True,
+	Function_Name + ".Gaussian_Sigma": 10.0,
+	Function_Name + ".Binning_Method": "Iso-Density",
+	Function_Name + ".Batch_Mode": True,
+	Function_Name + ".Save_Individual_Files": False,
+	Function_Name + ".Prolix_Mode": False,
+	Function_Name + ".Objective_Mag": "5x",
+	Function_Name + ".Objective_NA": 1.0,
+	Function_Name + ".Objective_Immersion": "Air",
+	Function_Name + ".Channel_Names": ["DAPI", "Alexa488", "Alexa555", "Alexa647", "Alexa730", "Alexa731", "Alexa732", "Alexa733"],
+	Function_Name + ".Channel_WavelengthsEM": [425, 488, 555, 647, 730, 731, 732, 733],
 }
 
 
@@ -102,28 +100,28 @@ IJ.run("Set Measurements...", "area mean standard modal min centroid center peri
 
 # Display a message in the log only in Prolix_Mode
 def Prolix_Message(Message):
-	Field_Uniformity_Settings_Stored = Read_Preferences(Settings_Templates_List["Field_Uniformity_Settings_Template"])
-	if Field_Uniformity_Settings_Stored["Field_Uniformity.Prolix_Mode"]:
+	Settings_Stored = Read_Preferences(Settings_Template)
+	if Settings_Stored[Function_Name + ".Prolix_Mode"]:
 		IJ.log(Message)
 	return
 
 # Check if Setting in the Setting List are in the Preferences. If not, write them from the Templates. Also used to Reset Settings
-def Initialize_Preferences(Settings_Templates_List, Reset_Preferences):
-	for SettingsGroup in Settings_Templates_List.keys():
-	 	for Setting, Value in Settings_Templates_List[SettingsGroup].items():
+def Initialize_Preferences(Settings, Reset_Preferences):
+ 	if Reset_Preferences:
+		Save_Preferences(Settings)
+	else:
+		for Setting, Value in Settings.items():
 		 	if Prefs.get(Setting, None) is None:
-				Save_Preferences(Settings_Templates_List[SettingsGroup])
+				Save_Preferences(Settings)
  				break
-		if Reset_Preferences:
-			Save_Preferences(Settings_Templates_List[SettingsGroup])
 	return
 
 # Read the Preferences an return a dictionnary with the settings
-def Read_Preferences(Settings_Template):
+def Read_Preferences(Settings):
 	Preferences_Stored = {}
-	for Key, Default_Value in Settings_Template.items():
+	for Key, Default_Value in Settings.items():
 		Value = Prefs.get(Key, str(Default_Value))
-		# Use the Type of data from  theTemplate to convert the settings from the Pref in the correct type
+		# Use the Type of data from theTemplate to convert the settings from the Pref in the correct type
 		if isinstance(Default_Value, bool):
 			Value = bool(int(Value)) # Interestingly Boolean are saved as a float in the Pref so we need to convert to int and then to boolean
 		elif isinstance(Default_Value, float):
@@ -165,23 +163,23 @@ def Get_Images():
 		Prolix_Message("Success opened images found: :{}".format("\n".join(Image_List)))
 	else:
 		Image_List = []
-		Prolix_Message("No opened image. Selecting Folder")
+		Prolix_Message("No opened image. Selecting Folder...")
 		while not Image_List:
 			Input_Dir_Path = Select_Folder(Default_Path = User_Desktop_Path)
-			Prolix_Message("Selected Folder {}".format(Input_Dir_Path))
+			Prolix_Message("Selected Folder {}.".format(Input_Dir_Path))
 			for Root, Dirs, Files in os.walk(Input_Dir_Path): # Get Files Recursively
 			# Files = os.listdir(Input_Dir_Path): # Comment the line above and uncomment this line if you don"t want to get files recurcively
 				for File in Files:
 					if File.lower().endswith(tuple(Image_Valid_Extensions)): # Select only files ending with a Image_Valid_extensions
 						Image_List.append(str(os.path.join(Root, File)))
-						Prolix_Message("Success image {} added".format(os.path.join(Root, File)))
+						Prolix_Message("Success adding {}.".format(os.path.join(Root, File)))
 			Image_List.sort()
 			if not Image_List:
 				Message = "Failed No valid image files found in the selected folder."
 				Advice = "Valid image file extensions are: " + ", ".join(Image_Valid_Extensions)
-				IJ.log(Message + "\n" + Advice)
-				JOptionPane.showMessageDialog(None, Message + "\n" + Advice, Plugin_Name +" "+ Function_Name, JOptionPane.INFORMATION_MESSAGE)
-		Prolix_Message("Success List of Images\n{}".format("\n".join(Image_List)))
+				IJ.log("{}\n{}".format(Message, Advice))
+				JOptionPane.showMessageDialog(None, "{}\n{}".format(Message, Advice), "{} {}".format(Plugin_Name, Function_Name), JOptionPane.INFORMATION_MESSAGE)
+		Prolix_Message("Success List of Images:\n{}".format("\n".join(Image_List)))
 	return Image_List
 
 # Return InputDir_Path as a string. Used in Get_Images
@@ -193,11 +191,11 @@ def Select_Folder(Default_Path):
 	Return_Value = Chooser.showOpenDialog(None)
 	if Return_Value == JFileChooser.APPROVE_OPTION:
 		InputDir_Path = Chooser.getSelectedFile().getAbsolutePath()
-		Prolix_Message("Success Selecting Folder: {}. Done.".format(InputDir_Path))
+		Prolix_Message("Success Selecting Folder: {}.".format(InputDir_Path))
 	else:
-		Message="Failed Folder selection was canceled by user."
+		Message="Folder selection was canceled by user."
 		IJ.log(Message)
-		JOptionPane.showMessageDialog(None, Message, Plugin_Name +" "+ Function_Name, JOptionPane.INFORMATION_MESSAGE)
+		JOptionPane.showMessageDialog(None, Message, "{} {}".format(Plugin_Name, Function_Name), JOptionPane.INFORMATION_MESSAGE)
 		sys.exit(Message)
 	return InputDir_Path
 
@@ -209,13 +207,13 @@ def Open_Image_Bioformats(File_Path):
 	try:
 		imps = BF.openImagePlus(Bioformat_Options)
 		if imps and len(imps) > 0:
-			Prolix_Message("Success Importing {} with Bioformats. Done".format(File_Path))
+			Prolix_Message("Success Importing {} with Bioformats.".format(File_Path))
 			return imps[0]
 		else:
-			IJ.log("Failed Importing with Bioformats failed: No Images found in {}".format(File_Path))
+			IJ.log("Failed importation with Bioformats: No Images found in {}".format(File_Path))
 			return
-	except Exception,  Error:
-		IJ.log("Failed Importing with Bioformats: Error opening {}".format(Error))
+	except Exception, Error:
+		IJ.log("Failed Importation with Bioformats: Error opening {}".format(Error))
 		return
 
 # Generate a Unique filepath Directory\Basename_Suffix-001.Extension
@@ -224,21 +222,21 @@ def Generate_Unique_Filepath(Directory, Basename, Suffix, Extension):
 	Filename = "{}_{}{}".format(Basename, Suffix, Extension)
 	Filepath = os.path.join(Directory, Filename)
 	if not os.path.exists(Filepath):
-		Prolix_Message("Success Generating Unique Filepath {}. Done.".format(Basename))
+		Prolix_Message("Success Generating Unique Filepath {}.".format(Basename))
 		return Filepath
 	File_Counter = 2
 	while True:
 		Filename = "{}_{}-{:03d}{}".format(Basename, Suffix, File_Counter, Extension)
 		Filepath = os.path.join(Directory, Filename)
 		if not os.path.exists(Filepath):
-			Prolix_Message("Success Generating Unique Filepath {}. Done.".format(Basename))
+			Prolix_Message("Success Generating Unique Filepath {}.".format(Basename))
 			return Filepath
 		File_Counter += 1
 	return
 
 # Match the Image Space Unit to a defined Standard Space Unit: m, cm, mm, micronSymbo+"m", nm
 def Normalize_Space_Unit(Space_Unit):
-	Prolix_Message("Standardizing space unit: " + str(Space_Unit) + "...")
+	Prolix_Message("Standardizing space unit: {}...".format(Space_Unit))
 	Space_Unit_Std = Space_Unit_Conversion_Dictionary.get(Space_Unit.lower(), "pixels")
 	Prolix_Message("Success Standardizing space unit from {} to {}".format(Space_Unit, Space_Unit_Std))
 	return Space_Unit_Std
@@ -251,16 +249,21 @@ def Get_Image_Info(imp):
 	Image_Name = imp.getTitle()
 	Prolix_Message("Getting Image Info for {}...".format(Image_Name))
 	File_Info = imp.getOriginalFileInfo()
-	if File_Info is not None and File_Info.directory is not None:
-		Filename = File_Info.fileName
-		Input_Dir = File_Info.directory
-		Input_File_Path = os.path.join(Input_Dir, Filename)
-	else:
-		Filename = Image_Name + "_Unknown Origin"
+	if not File_Info :
+		Filename = Image_Name + "_Unsaved"
 		Input_Dir = "N/A"
 		Input_File_Path = "N/A"
-		IJ.log("File is not written on the disk. Proceeding with Filename: {}, Input Dir: {}, Path: {}".format(Filename, Input_Dir, Input_File_Path))
-
+		IJ.log("{} not written on the disk. Proceeding with Filename: {}, Input Dir: {}, Path: {}".format(Image_Name, Filename, Input_Dir, Input_File_Path))
+	else : # File Info is not None
+		Filename = File_Info.fileName
+		Input_Dir = File_Info.directory
+		if not Input_Dir :
+			Input_Dir = "N/A"
+			Input_File_Path = "N/A"
+			IJ.log("{} has no directory. Proceeding with Filename: {}, Input Dir: {}, Path: {}".format(Image_Name, Filename, Input_Dir, Input_File_Path))
+		else:
+			Input_File_Path = os.path.join(Input_Dir, Filename)
+			Prolix_Message("Filename: {}, Input Dir: {}, Path: {}".format(Filename, Input_Dir, Input_File_Path))
 	Basename, Extension = os.path.splitext(Filename)
 	Width = imp.getWidth()
 	Height = imp.getHeight()
@@ -279,7 +282,7 @@ def Get_Image_Info(imp):
 	Time_Unit = Calibration.getTimeUnit()
 	Frame_Interval = Calibration.frameInterval
 	Calibration_Status = Calibration.scaled()
-
+	Image_Type = imp.getType()
 	Space_Unit_Std = Normalize_Space_Unit(Space_Unit)
 
 	# Dictionnary storing all image information
@@ -308,8 +311,9 @@ def Get_Image_Info(imp):
 		"Time_Unit": str(Time_Unit),
 		"Frame_Interval": float(Frame_Interval),
 		"Calibration_Status": bool(Calibration_Status),
+		"Image_Type":int(Image_Type)
 		}
-	Prolix_Message("Getting Image Info for- {}. Done.".format(Image_Name))
+	Prolix_Message("Success getting Image Info for {}.".format(Image_Name))
 	return Image_Info
 
 
@@ -319,13 +323,14 @@ def Get_Image_Info(imp):
 # Objective_Mag_Metadata a string
 # Objective_NA_Metadata a floating
 # Objective_Immersion_Metadata a string
-def Get_Metadata(imp):
+def Get_Image_Metadata(imp):
 	Image_Name = imp.getTitle()
 	Prolix_Message("Getting Metadata for {}...".format(Image_Name))
+	Image_Metadata = {}
 	Image_Info = Get_Image_Info(imp)
 	if Image_Info["Input_File_Path"] == "N/A":
-		IJ.log("{} {} can only get metadata from images written on the disk. Continuing without getting metadata". format(Plugin_Name, Function_Name))
-		return None, None, None, None, None
+		IJ.log("{} {} can only get metadata from images written on the disk. {} is virtual. Proceeding with information from Preferences...". format(Plugin_Name, Function_Name, Image_Name))
+		return None
 	Bioformat_Options = ImporterOptions()
 	Bioformat_Options.setId(Image_Info["Input_File_Path"])
 	Metadata = MetadataTools.createOMEXMLMetadata()
@@ -334,20 +339,19 @@ def Get_Metadata(imp):
 	Reader.setId(Image_Info["Input_File_Path"])
 	if Metadata.getImageCount() == 0:
 		IJ.log("{} does not contain metadata. Proceeding with information from Preferences...".format(Image_Name))
-		return None, None, None, None, None
+		return None
 	else:
 		Channel_Names_Metadata = []
-		for i in range(1, Image_Info["Nb_Channels"] + 1):
-			Channel_Name = Metadata.getChannelName(0, i-1) # Channel_Name are Unicode
+		for i in range(Metadata.getChannelCount(0)):
+			Channel_Name = Metadata.getChannelName(0, i) # Channel_Name are Unicode
 			if Channel_Name is not None:
-				Channel_Name = str(Channel_Name)  # Convert Unicode to regular string
+				Channel_Name = str(Channel_Name) # Convert Unicode to regular string
 			Channel_Names_Metadata.append(Channel_Name)
 		if any(Channel_Name is None for Channel_Name in Channel_Names_Metadata):
 			Channel_Names_Metadata = None
-
 		Channel_WavelengthsEM_Metadata = []
-		for i in range(1, Image_Info["Nb_Channels"] + 1):
-			WavelengthEM = Metadata.getChannelEmissionWavelength(0, i-1)
+		for i in range(Metadata.getChannelCount(0)):
+			WavelengthEM = Metadata.getChannelEmissionWavelength(0, i)
 			if WavelengthEM is not None:
 				# Extract numeric value from the wavelength metadata
 				Value_Str = str(WavelengthEM)
@@ -365,20 +369,25 @@ def Get_Metadata(imp):
 
 		# Check if metadata contains objective and instrument information
 		if Metadata.getInstrumentCount() > 0 and Metadata.getObjectiveCount(0) > 0:
-			Objective_Magnification_Metadata = str(int(Metadata.getObjectiveNominalMagnification(0,0)))+"x"
+			Objective_Mag_Metadata = str(int(Metadata.getObjectiveNominalMagnification(0,0)))+"x"
 			Objective_NA_Metadata = float(Metadata.getObjectiveLensNA(0, 0))
 			Objective_Immersion_Metadata = str(Metadata.getObjectiveImmersion(0, 0))
 		else:
-			Objective_Magnification_Metadata = None
+			Objective_Mag_Metadata = None
 			Objective_NA_Metadata = None
 			Objective_Immersion_Metadata = None
-		Prolix_Message("Objective_Magnification_Metadata = {}".format(Objective_Magnification_Metadata))
-		Prolix_Message("Objective_NA_Metadata = {}".format(Objective_NA_Metadata))
-		Prolix_Message("Objective_Immersion_Metadata = {}".format(Objective_Immersion_Metadata))
-		Prolix_Message("Channel Names Metadata = {}".format(str(Channel_Names_Metadata)))
-		Prolix_Message("Channel Wavelengths EM Metadata  = {}".format(Channel_WavelengthsEM_Metadata))
-		Prolix_Message("Getting Metadata for {}. Done.".format(Image_Name))
-	return Channel_Names_Metadata, Channel_WavelengthsEM_Metadata, Objective_Magnification_Metadata, Objective_NA_Metadata, Objective_Immersion_Metadata
+		Prolix_Message("Objective_Mag_Metadata = {}.".format(Objective_Mag_Metadata))
+		Prolix_Message("Objective_NA_Metadata = {}.".format(Objective_NA_Metadata))
+		Prolix_Message("Objective_Immersion_Metadata = {}.".format(Objective_Immersion_Metadata))
+		Prolix_Message("Channel Names Metadata = {}.".format(str(Channel_Names_Metadata)))
+		Prolix_Message("Channel Wavelengths EM Metadata = {}.".format(Channel_WavelengthsEM_Metadata))
+		Prolix_Message("Success getting Metadata for {}.".format(Image_Name))
+		Image_Metadata["Objective_Mag_Metadata"] = Objective_Mag_Metadata
+		Image_Metadata["Objective_NA_Metadata"] = Objective_NA_Metadata
+		Image_Metadata["Objective_Immersion_Metadata"] = Objective_Immersion_Metadata
+		Image_Metadata["Channel_Names_Metadata"] = Channel_Names_Metadata
+		Image_Metadata["Channel_WavelengthsEM_Metadata"] = Channel_WavelengthsEM_Metadata
+	return Image_Metadata
 
 def Get_Refractive_Index(Objective_Immersion): # Get the refractive Index (float) from the Immersion media (String). Return Refracive_Index
 	Prolix_Message("Getting refractive index for {} objective...".format(Objective_Immersion))
@@ -390,7 +399,7 @@ def Get_Refractive_Index(Objective_Immersion): # Get the refractive Index (float
 		"Silicone": 1.40,
 	}
 	Refractive_Index = float(Refractive_Indices.get(Objective_Immersion, 1.0))
-	Prolix_Message("Getting refractive index for {} objective. Done. Refractive Index = {}".format(Objective_Immersion, Refractive_Index))
+	Prolix_Message("Success getting refractive index for {} objective. Refractive Index = {}.".format(Objective_Immersion, Refractive_Index))
 	return Refractive_Index
 
 
@@ -426,7 +435,7 @@ def Get_Refractive_Index(Objective_Immersion): # Get the refractive Index (float
 # Retrurn Processed_Images_List a list of processed images
 
 def Process_Image_List(Image_List):
-	Prolix_Message("Processing Image List")
+	Prolix_Message("Processing Image List {}.".format(Image_List))
 	Processed_Images_List = []
 	Data_All_Files = []
 	global Image
@@ -442,25 +451,22 @@ def Process_Image_List(Image_List):
 			File_Source="Folder"
 		#Zoom.set(imp, 0.5);
 		imp.show()
-		Image_Info = Get_Image_Info(imp)
-		Image_Name = Image_Info["Image_Name"]
-		Prolix_Message("Opening {} from {}. Done.".format(Image_Name, File_Source))
-
+		Image_Name = imp.getTitle()
+		Prolix_Message("Success opening {} from {}.".format(Image_Name, File_Source))
 		# Process the first image with Process_Image function showing a Dialog
 		if Image == 0:
 			Prolix_Message("Processing initial Image {}.".format(Image_Name))
 			Data_All_Files, Processed_Images_List = Process_Image(imp, Data_All_Files, Processed_Images_List, Batch_Message="")
 		# For subsequent images, check if batch mode is enabled
 		else:
-			Field_Uniformity_Settings_Stored = Read_Preferences(Settings_Templates_List["Field_Uniformity_Settings_Template"])
-			if Field_Uniformity_Settings_Stored["Field_Uniformity.Batch_Mode"]:
+			Settings_Stored = Read_Preferences(Settings_Template)
+			if Settings_Stored[Function_Name+".Batch_Mode"]:
 				Prolix_Message("Processing in batch {}.".format(Image_Name))
 				Data_All_Files, Processed_Images_List = Process_Image_Batch(imp, Data_All_Files, Processed_Images_List)
-
 			else:
-			 	IJ.log("Failed Batch processing {}. Falling back to regular processing.".format(Image_Name))
+			 	IJ.log("Failed Batch processing {}. Falling back to dialog processing.".format(Image_Name))
 				Data_All_Files, Processed_Images_List = Process_Image(imp, Data_All_Files, Processed_Images_List, Batch_Message = "")
-		if File_Source=="Folder":
+		if File_Source == "Folder":
 			Prolix_Message("Closing {}".format(Image_Name))
 			imp.close()
 	return Data_All_Files, Processed_Images_List
@@ -471,45 +477,36 @@ def Process_Image_List(Image_List):
 # Return Processed_Images_List
 # Reset Batch_Message to ""
 def Process_Image(imp, Data_All_Files, Processed_Images_List, Batch_Message):
-	Image_Info = Get_Image_Info(imp)
-	Image_Name = Image_Info["Image_Name"]
+	Image_Name = imp.getTitle()
 	Prolix_Message("Processing {}...".format(Image_Name))
 	Dialog_Counter = 0
 	User_Click = None
 	Test_Processing = False
 	while True:
-		Field_Uniformity_Settings_Stored = Read_Preferences(Settings_Templates_List["Field_Uniformity_Settings_Template"])
-		Microscope_Settings_Stored = Read_Preferences(Settings_Templates_List["Microscope_Settings_Template"])
+		Settings_Stored = Read_Preferences(Settings_Template)
 
-		Field_Uniformity_Settings_User, Microscope_Settings_User, User_Click, Dialog_Counter, Test_Processing, Batch_Message = Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Message)
+		Settings_User, User_Click, Dialog_Counter, Test_Processing, Batch_Message = Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Message)
 
-		Prolix_Message("User Click = {}".format(User_Click))
-		Prolix_Message("Dialog Counter = {}".format(Dialog_Counter))
-		Prolix_Message("Test Processing = {}".format(Test_Processing))
-		Prolix_Message("Batch Message = {}".format(Batch_Message))
-
-		Field_Uniformity_Settings_Stored_Filtered = {}
-		for Key, Value in Field_Uniformity_Settings_Stored.items():
-			if Key not in [
-			"Field_Uniformity.Batch_Mode",
-			"Field_Uniformity.Save_Individual_Files",
-			"Field_Uniformity.Prolix_Mode"
+		Settings_Stored_Filtered = {}
+		for Key, Value in Settings_Stored.items():
+			if Key in [
+			Function_Name+".Gaussian_Blur",
+			Function_Name+".Gaussian_Sigma",
+			Function_Name+".Binning_Method"
 			]:
-				Field_Uniformity_Settings_Stored_Filtered[Key] = Value
+				Settings_Stored_Filtered[Key] = Value
 
-		Field_Uniformity_Settings_User_Filtered = {}
-		for key, value in Field_Uniformity_Settings_User.items():
-			if key not in [
-			"Field_Uniformity.Batch_Mode",
-			"Field_Uniformity.Save_Individual_Files",
-			"Field_Uniformity.Prolix_Mode"
+		Settings_User_Filtered = {}
+		for Key, Value in Settings_User.items():
+			if Key in [
+			Function_Name+".Gaussian_Blur",
+			Function_Name+".Gaussian_Sigma",
+			Function_Name+".Binning_Method"
 			]:
-				Field_Uniformity_Settings_User_Filtered[key] = value
-
-
+				Settings_User_Filtered[Key] = Value
 
 		# All conditions must be fulfilled to proceed
-		if User_Click == "OK" and not Test_Processing and Field_Uniformity_Settings_Stored_Filtered == Field_Uniformity_Settings_User_Filtered: #and Microscope_Settings_User == Microscope_Settings_Stored:
+		if User_Click == "OK" and not Test_Processing and Settings_Stored_Filtered == Settings_User_Filtered:
 			break
 		elif User_Click == "Cancel":
 			Message = "Processing {}, User Canceled operation".format(Image_Name)
@@ -527,36 +524,42 @@ def Process_Image(imp, Data_All_Files, Processed_Images_List, Batch_Message):
 # Process Image without Dialog Check for metadata compatibility
 # Return Data_All_Files, Processed_Images_List and a Batch_Message to be passed to the Dialog in case of Metadata and Settings Mismatch
 def Process_Image_Batch(imp, Data_All_Files, Processed_Images_List):
-	Image_Info = Get_Image_Info(imp)
-	Image_Name = Image_Info["Image_Name"]
-	Nb_Channels = Image_Info["Nb_Channels"]
+	Image_Name = imp.getTitle()
+	Nb_Channels = imp.getNChannels()
 	Prolix_Message("Processing in batch {}...". format(Image_Name))
 
-	Field_Uniformity_Settings_Stored = Read_Preferences(Settings_Templates_List["Field_Uniformity_Settings_Template"])
-	Microscope_Settings_Stored = Read_Preferences(Settings_Templates_List["Microscope_Settings_Template"])
+	Settings_Stored = Read_Preferences(Settings_Template)
+	Channel_Names_Stored = Settings_Stored[Function_Name+".Channel_Names"]
+	Channel_WavelengthsEM_Stored = Settings_Stored[Function_Name+".Channel_WavelengthsEM"]
+	Objective_Mag_Stored = Settings_Stored[Function_Name+".Objective_Mag"]
+	Objective_NA_Stored = Settings_Stored[Function_Name+".Objective_NA"]
+	Objective_Immersion_Stored = Settings_Stored[Function_Name+".Objective_Immersion"]
 
 	# Trying to get some metadata
-	Channel_Names_Metadata, Channel_WavelengthsEM_Metadata, Objective_Mag_Metadata, Objective_NA_Metadata, Objective_Immersion_Metadata = Get_Metadata(imp)
+	Image_Metadata = Get_Image_Metadata(imp)
 
 	# Check for presence of metadata and compare it with stored preferences
 	Batch_Message = ""
-	if Channel_Names_Metadata or Channel_Names_Metadata or Objective_Mag_Metadata or Objective_NA_Metadata or Objective_Immersion_Metadata:
-		if str(Objective_Mag_Metadata) != str(Microscope_Settings_Stored["Field_Uniformity.Microscope.Objective_Mag"]):
-			Batch_Message = Batch_Message + "Objective Magnification Metadata: {}. Preferences: {}.".format(Objective_Mag_Metadata, Microscope_Settings_Stored["Field_Uniformity.Microscope.Objective_Mag"])
+	if Image_Metadata is not None:
+		Channel_Names_Metadata = Image_Metadata["Channel_Names_Metadata"]
+		Channel_WavelengthsEM_Metadata = Image_Metadata["Channel_WavelengthsEM_Metadata"]
+		Objective_Mag_Metadata = Image_Metadata["Objective_Mag_Metadata"]
+		Objective_NA_Metadata = Image_Metadata["Objective_NA_Metadata"]
+		Objective_Immersion_Metadata = Image_Metadata["Objective_Immersion_Metadata"]
 
-		if float(Objective_NA_Metadata) != float(Microscope_Settings_Stored["Field_Uniformity.Microscope.Objective_NA"]):
-			Batch_Message = Batch_Message + "\n" + "Objective NA Metadata: {}. Preferences: {}.".format(Objective_NA_Metadata, Microscope_Settings_Stored["Field_Uniformity.Microscope.Objective_NA"])
-
-		if str(Objective_Immersion_Metadata) != str(Microscope_Settings_Stored["Field_Uniformity.Microscope.Objective_Immersion"]):
-			Batch_Message = Batch_Message + "\n" + "Objective Immersion Metadata: {}. Preferences: {}.".format(Objective_Immersion_Metadata, Microscope_Settings_Stored["Field_Uniformity.Microscope.Objective_Immersion"])
-
-		if Nb_Channels > len(Microscope_Settings_Stored["Field_Uniformity.Microscope.Channel_Names"]):
-			Batch_Message = Batch_Message + "\n" + "Nb of Channels Image: {}. Preferences: {}.".format(Nb_Channels, len(Microscope_Settings_Stored["Field_Uniformity.Microscope.Channel_Names"]))
+		if Objective_Mag_Metadata != Objective_Mag_Stored:
+			Batch_Message = Batch_Message + "Objective Magnification Metadata: {}. Preferences: {}.".format(Objective_Mag_Metadata, Objective_Mag_Stored)
+		if Objective_NA_Metadata != Objective_NA_Stored:
+			Batch_Message = Batch_Message + "\n" + "Objective NA Metadata: {}. Preferences: {}.".format(Objective_NA_Metadata, Objective_NA_Stored)
+		if Objective_Immersion_Metadata != Objective_Immersion_Stored:
+			Batch_Message = Batch_Message + "\n" + "Objective Immersion Metadata: {}. Preferences: {}.".format(Objective_Immersion_Metadata, Objective_Immersion_Stored)
+		if Nb_Channels > len(Channel_Names_Stored):
+			Batch_Message = Batch_Message + "\n" + "Nb of Channels Image: {}. Preferences: {}.".format(Nb_Channels, len(Channel_Names_Stored))
 		else: # Nb of Channels is sufficient check Matching values
-			if Channel_Names_Metadata != Microscope_Settings_Stored["Field_Uniformity.Microscope.Channel_Names"][:Nb_Channels]:
-				Batch_Message = Batch_Message + "\n" + "Channel Names Metadata: {}. Preferences: {}.".format(Channel_Names_Metadata, Microscope_Settings_Stored["Field_Uniformity.Microscope.Channel_Names"][:Nb_Channels])
-			if Channel_WavelengthsEM_Metadata != Microscope_Settings_Stored["Field_Uniformity.Microscope.Channel_WavelengthsEM"][:Nb_Channels]:
-				Batch_Message = Batch_Message + "\n" + "Channel Emission Wavelengths Metadata: {}. Preferences: {}.".format(Channel_WavelengthsEM_Metadata, Microscope_Settings_Stored["Field_Uniformity.Microscope.Channel_WavelengthsEM"][:Nb_Channels])
+			if Channel_Names_Metadata != Channel_Names_Stored[:Nb_Channels]:
+				Batch_Message = Batch_Message + "\n" + "Channel Names Metadata: {}. Preferences: {}.".format(Channel_Names_Metadata, Channel_Names_Stored[:Nb_Channels])
+			if Channel_WavelengthsEM_Metadata != Channel_WavelengthsEM_Stored[:Nb_Channels]:
+				Batch_Message = Batch_Message + "\n" + "Channel Emission Wavelengths Metadata: {}. Preferences: {}.".format(Channel_WavelengthsEM_Metadata, Channel_WavelengthsEM_Stored[:Nb_Channels])
 		if Batch_Message != "":
 			Batch_Message = "Metadata differ from preferences. {}".format(Batch_Message)
 			Prolix_Message(Batch_Message)
@@ -564,7 +567,7 @@ def Process_Image_Batch(imp, Data_All_Files, Processed_Images_List):
 		else:
 			Batch_Processing = "Pass"
 	else: # No Metadata found try with stored data
-		if Nb_Channels <= len(Microscope_Settings_Stored["Field_Uniformity.Microscope.Channel_Names"]) and Nb_Channels <= len(Microscope_Settings_Stored["Field_Uniformity.Microscope.Channel_WavelengthsEM"]):
+		if Nb_Channels <= len(Channel_WavelengthsEM_Stored) and Nb_Channels <= len(Channel_WavelengthsEM_Stored):
 			Batch_Processing = "Pass"
 		else:
 			Batch_Processing = "Fail"
@@ -574,33 +577,41 @@ def Process_Image_Batch(imp, Data_All_Files, Processed_Images_List):
 		Processed_Images_List.append(Image_Name)
 		IJ.log("Success batch processing {}.".format(Image_Name))
 	else:
-		IJ.log("Batch processing failed for {}.{}".format(Image_Name, Batch_Message))
+		IJ.log("Batch processing failed for {}.\n{}".format(Image_Name, Batch_Message))
 		Data_All_Files, Processed_Images_List = Process_Image(imp, Data_All_Files, Processed_Images_List, Batch_Message)
 	return Data_All_Files, Processed_Images_List
 
 
 
 # Display a Dialog when Processing an image excepted in Batch_Mode
-# Return Field_Uniformity_Settings_User, Microscope_Settings_User, User_Click, Dialog_Counter, Test_Processing, Batch_Message
+# Return Settings_User, User_Click, Dialog_Counter, Test_Processing, Batch_Message
 # The Dialog uses Javax Swing and takes some lines... Sorry...
 def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Message):
+	Image_Name = imp.getTitle()
 	Image_Info = Get_Image_Info(imp)
-	Image_Name = Image_Info["Image_Name"]
-	Current_Channel = Image_Info["Current_Channel"]
+	Nb_Channels = imp.getNChannels()
+	Current_Channel = imp.getChannel()
 	Prolix_Message("Displaying Processing Dialog for {}...".format(Image_Name))
 
 	# Getting Metadata and Stored settings
-	Channel_Names_Metadata, Channel_WavelengthsEM_Metadata, Objective_Mag_Metadata, Objective_NA_Metadata, Objective_Immersion_Metadata = Get_Metadata(imp)
-	Field_Uniformity_Settings_Stored = Read_Preferences(Settings_Templates_List["Field_Uniformity_Settings_Template"])
-	Microscope_Settings_Stored = Read_Preferences(Settings_Templates_List["Microscope_Settings_Template"])
+	Image_Metadata = Get_Image_Metadata(imp)
 
-	# Displaying Metadata in priority and Stored values as fall back
-	# Displaying Metadata in priority and Stored values as fall back
-	Objective_Mag_Stored = Microscope_Settings_Stored["Field_Uniformity.Microscope.Objective_Mag"]
-	Objective_NA_Stored = Microscope_Settings_Stored["Field_Uniformity.Microscope.Objective_NA"]
-	Objective_Immersion_Stored = Microscope_Settings_Stored["Field_Uniformity.Microscope.Objective_Immersion"]
-	Channel_Names_Stored = Microscope_Settings_Stored["Field_Uniformity.Microscope.Channel_Names"]
-	Channel_WavelengthsEM_Stored = Microscope_Settings_Stored["Field_Uniformity.Microscope.Channel_WavelengthsEM"]
+	# Check for presence of metadata and compare it with stored preferences
+	if Image_Metadata is not None:
+		Channel_Names_Metadata = Image_Metadata["Channel_Names_Metadata"]
+		Channel_WavelengthsEM_Metadata = Image_Metadata["Channel_WavelengthsEM_Metadata"]
+		Objective_Mag_Metadata = Image_Metadata["Objective_Mag_Metadata"]
+		Objective_NA_Metadata = Image_Metadata["Objective_NA_Metadata"]
+		Objective_Immersion_Metadata = Image_Metadata["Objective_Immersion_Metadata"]
+
+
+	Settings_Stored = Read_Preferences(Settings_Template)
+	Channel_Names_Stored = Settings_Stored[Function_Name+".Channel_Names"]
+	Channel_WavelengthsEM_Stored = Settings_Stored[Function_Name+".Channel_WavelengthsEM"]
+	Objective_Mag_Stored = Settings_Stored[Function_Name+".Objective_Mag"]
+	Objective_NA_Stored = Settings_Stored[Function_Name+".Objective_NA"]
+	Objective_Immersion_Stored = Settings_Stored[Function_Name+".Objective_Immersion"]
+
 
 	def Set_Data(Data_Metadata, Data_Stored, Dialog_Counter):
 		if Data_Metadata is not None and Dialog_Counter == 0:
@@ -614,6 +625,14 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	Channel_Names, Channel_Names_Source = Set_Data(Channel_Names_Metadata, Channel_Names_Stored, Dialog_Counter)
 	Channel_WavelengthsEM, Channel_WavelengthsEM_Source = Set_Data(Channel_WavelengthsEM_Metadata, Channel_WavelengthsEM_Stored, Dialog_Counter)
 
+	# Adding Channel Names and wavelengths from templates
+	if len(Channel_Names) < Nb_Channels:
+		Missing_Channel_Names = Settings_Template[Function_Name + ".Channel_Names"][len(Channel_Names):Nb_Channels]
+		Channel_Names.extend(Missing_Channel_Names)
+	if len(Channel_WavelengthsEM) < Nb_Channels:
+		Missing_Channel_WavelengthsEM = Settings_Template[Function_Name + ".Channel_WavelengthsEM"][len(Channel_WavelengthsEM):Nb_Channels]
+		Channel_WavelengthsEM.extend(Missing_Channel_WavelengthsEM)
+
 	# Preprocessing the file before displaying the dialog
 	Data_File = Measure_Uniformity_All_Ch(imp, Save_File = False)
 
@@ -621,7 +640,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	Data_Ch, Duplicated_Ch_imp = Measure_Uniformity_Single_Channel(imp, Current_Channel, Save_File = False, Display = True)
 
 	# Create the Dialog. Sorry it is messy
-	Processing_Dialog = JDialog(None, Plugin_Name + " " + Function_Name, False)  # 'True' makes it modal
+	Processing_Dialog = JDialog(None, "{} {}".format(Plugin_Name, Function_Name), False) # 'True' makes it modal
 	Processing_Panel = JPanel()
 	Processing_Panel.setLayout(GridBagLayout())
 	Constraints = GridBagConstraints()
@@ -750,7 +769,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 					break
 
 			if All_Valid:
-				self.Error_Label.setText("")  # Clear error message
+				self.Error_Label.setText("") # Clear error message
 				self.OK_Button.setEnabled(True)
 			else:
 				self.Error_Label.setText("Positive number required")
@@ -815,7 +834,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 		Immersion_Radio_Button.setFont(Font("Arial", Font.PLAIN, 12))
 		Processing_Panel.add(Immersion_Radio_Button, Constraints)
 		Immersion_Radio_Group.add(Immersion_Radio_Button)
-		if Media == Objective_Immersion_Metadata:
+		if Media == Objective_Immersion:
 			Immersion_Radio_Button.setSelected(True)
 
 	Pos_Y += 1
@@ -988,7 +1007,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	# Loop for all Channels adding the name and Wavelength Fields
 	Channel_Name_List_User = [] # Sotring the Dialog Identifier in a list for retrieval
 	Channel_WavelengthsEm_List_User = [] # Sotring the Dialog Identifier in a list for retrieval
-	for Channel in range (1, Image_Info["Nb_Channels"]+1):
+	for Channel in range (1, Nb_Channels+1):
 		# Adding Channel Number Label
 		Constraints.gridx = Pos_X
 		Constraints.gridy = Pos_Y + Channel
@@ -1027,7 +1046,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 		Processing_Panel.add(J_Label, Constraints)
 
 
-	Pos_Y += Image_Info["Nb_Channels"]+1
+	Pos_Y += Nb_Channels+1
 
 
 	# Processing Settings
@@ -1062,7 +1081,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	X_Start = Pos_X + 1
 	Y_Start = Pos_Y
 	for i, Method in enumerate(Binning_Method_List):
-		Constraints.gridx = X_Start +  i
+		Constraints.gridx = X_Start + i
 		Constraints.gridy = Y_Start
 		Constraints.gridwidth = 1
 		Constraints.gridheight = 1
@@ -1072,7 +1091,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 		Binning_Button.setFont(Font("Arial", Font.PLAIN, 12))
 		Processing_Panel.add(Binning_Button, Constraints)
 		Binning_Group.add(Binning_Button)
-		if Method == Field_Uniformity_Settings_Stored["Field_Uniformity.Binning_Method"]:
+		if Method == Settings_Stored[Function_Name+".Binning_Method"]:
 			Binning_Button.setSelected(True)
 
 	# Batch Mode
@@ -1085,7 +1104,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	Label = "Batch Mode"
 	Batch_Mode_User = JCheckBox(Label)
 	Batch_Mode_User.setFont(Font("Arial", Font.BOLD, 12))
-	Batch_Mode_User.setSelected(Field_Uniformity_Settings_Stored["Field_Uniformity.Batch_Mode"])
+	Batch_Mode_User.setSelected(Settings_Stored[Function_Name+".Batch_Mode"])
 	Processing_Panel.add(Batch_Mode_User, Constraints)
 
 	Pos_Y += 1
@@ -1098,12 +1117,12 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	Constraints.gridheight = 1
 	Constraints.anchor = GridBagConstraints.EAST
 	Constraints.insets = Insets(2, 2, 2, 2)
-	Label_Gaussian_Blur = JLabel("Gaussian Blur "+ str(Field_Uniformity_Settings_Stored["Field_Uniformity.Gaussian_Sigma"]))
+	Label_Gaussian_Blur = JLabel("Gaussian Blur "+ str(Settings_Stored[Function_Name+".Gaussian_Sigma"]))
 	Label_Gaussian_Blur.setFont(Font("Arial", Font.BOLD, 12))
 	Processing_Panel.add(Label_Gaussian_Blur, Constraints)
 
 	# Gaussian Slider
-	Gaussian_Slider = JSlider(0, 100, int(Field_Uniformity_Settings_Stored["Field_Uniformity.Gaussian_Sigma"]))  # Min value 0, max value 100, initial value 50
+	Gaussian_Slider = JSlider(0, 100, int(Settings_Stored[Function_Name+".Gaussian_Sigma"])) # Min value 0, max value 100, initial value 50
 	Gaussian_Slider.setMajorTickSpacing(20)
 	Gaussian_Slider.setMinorTickSpacing(10)
 	Gaussian_Slider.setPaintTicks(True)
@@ -1135,7 +1154,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	Label = "Save Individual Files"
 	Save_Individual_Files_User = JCheckBox(Label)
 	Save_Individual_Files_User.setFont(Font("Arial", Font.PLAIN, 12))
-	Save_Individual_Files_User.setSelected(Field_Uniformity_Settings_Stored["Field_Uniformity.Save_Individual_Files"])
+	Save_Individual_Files_User.setSelected(Settings_Stored[Function_Name+".Save_Individual_Files"])
 	Processing_Panel.add(Save_Individual_Files_User, Constraints)
 
 	# Prolix Mode
@@ -1148,7 +1167,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	Label = "Prolix Mode"
 	Prolix_Mode_User = JCheckBox(Label)
 	Prolix_Mode_User.setFont(Font("Arial", Font.PLAIN, 12))
-	Prolix_Mode_User.setSelected(Field_Uniformity_Settings_Stored["Field_Uniformity.Prolix_Mode"])
+	Prolix_Mode_User.setSelected(Settings_Stored[Function_Name+".Prolix_Mode"])
 	Processing_Panel.add(Prolix_Mode_User, Constraints)
 
 	Pos_Y += 1
@@ -1160,12 +1179,12 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	Constraints.gridheight = 1
 	Constraints.anchor = GridBagConstraints.EAST
 	Constraints.insets = Insets(2, 2, 2, 2)
-	Channel_Label = JLabel("Channel " + str(Image_Info["Current_Channel"]))
+	Channel_Label = JLabel("Channel " + str(Current_Channel))
 	Channel_Label.setFont(Font("Arial", Font.BOLD, 12))
 	Processing_Panel.add(Channel_Label, Constraints)
 
 	# Channel Slider
-	Channel_Slider = JSlider(1, Image_Info["Nb_Channels"], Image_Info["Current_Channel"])
+	Channel_Slider = JSlider(1, Nb_Channels, Current_Channel)
 	Channel_Slider.setMajorTickSpacing(1)
 	Channel_Slider.setPaintTicks(True)
 	Channel_Slider.setPaintLabels(True)
@@ -1234,9 +1253,9 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 		Processing_Dialog.dispose()
 		global User_Click
 		User_Click = "Cancel"
-		Message = "User clicked Cancel while processing "+ Image_Name +"."
+		Message = "User clicked Cancel while processing {}.".format(Image_Name)
 		IJ.log(Message)
-		JOptionPane.showMessageDialog(None, Message, Plugin_Name+" "+Function_Name, JOptionPane.INFORMATION_MESSAGE)
+		JOptionPane.showMessageDialog(None, Message, "{} {}".format(Plugin_Name, Function_Name), JOptionPane.INFORMATION_MESSAGE)
 		sys.exit(Message)
 		return
 
@@ -1352,24 +1371,23 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	Prolix_Mode_User = Prolix_Mode_User.isSelected()
 	Test_Processing_User = Test_Processing_User.isSelected()
 
-	Microscope_Settings_User = {}
-	Field_Uniformity_Settings_User = {}
+	Settings_User = {}
 
 	if User_Click == "Cancel":
 		Message = "User clicked Cancel while processing {}.".format(Image_Name)
 		IJ.log(Message)
-		JOptionPane.showMessageDialog(None, Message, Plugin_Name + " " + Function_Name, JOptionPane.INFORMATION_MESSAGE)
+		JOptionPane.showMessageDialog(None, Message, "{} {}".format(Plugin_Name, Function_Name), JOptionPane.INFORMATION_MESSAGE)
 		sys.exit(Message)
 
 	elif User_Click == "OK":
-		Microscope_Settings_User["Field_Uniformity.Microscope.Objective_Mag"] = Objective_Mag_User
-		Microscope_Settings_User["Field_Uniformity.Microscope.Objective_NA"] = Objective_NA_User
-		Microscope_Settings_User["Field_Uniformity.Microscope.Objective_Immersion"] = Objective_Immersion_User
-		Microscope_Settings_User["Field_Uniformity.Microscope.Channel_Names"] = Channel_Names_User
-		Microscope_Settings_User["Field_Uniformity.Microscope.Channel_WavelengthsEM"] = Channel_WavelengthsEM_User
-		Field_Uniformity_Settings_User["Field_Uniformity.Batch_Mode"] = Batch_Mode_User
-		Field_Uniformity_Settings_User["Field_Uniformity.Save_Individual_Files"] = Save_Individual_Files_User
-		Field_Uniformity_Settings_User["Field_Uniformity.Prolix_Mode"] = Prolix_Mode_User
+		Settings_User[Function_Name+".Objective_Mag"] = Objective_Mag_User
+		Settings_User[Function_Name+".Objective_NA"] = Objective_NA_User
+		Settings_User[Function_Name+".Objective_Immersion"] = Objective_Immersion_User
+		Settings_User[Function_Name+".Channel_Names"] = Channel_Names_User
+		Settings_User[Function_Name+".Channel_WavelengthsEM"] = Channel_WavelengthsEM_User
+		Settings_User[Function_Name+".Batch_Mode"] = Batch_Mode_User
+		Settings_User[Function_Name+".Save_Individual_Files"] = Save_Individual_Files_User
+		Settings_User[Function_Name+".Prolix_Mode"] = Prolix_Mode_User
 		Test_Processing = Test_Processing_User
 		Selected_Channel = Test_Channel_User
 		if Selected_Channel != int(Current_Channel):
@@ -1382,12 +1400,11 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 		elif Gaussian_Blur_User > 0:
 			Gaussian_Blur = True
 
-		Field_Uniformity_Settings_User["Field_Uniformity.Gaussian_Blur"] = Gaussian_Blur
-		Field_Uniformity_Settings_User["Field_Uniformity.Gaussian_Sigma"] = Gaussian_Blur_User
-		Field_Uniformity_Settings_User["Field_Uniformity.Binning_Method"] = Binning_Method_User
+		Settings_User[Function_Name+".Gaussian_Blur"] = Gaussian_Blur
+		Settings_User[Function_Name+".Gaussian_Sigma"] = Gaussian_Blur_User
+		Settings_User[Function_Name+".Binning_Method"] = Binning_Method_User
 
-		Save_Preferences(Microscope_Settings_User)
-		Save_Preferences(Field_Uniformity_Settings_User)
+		Save_Preferences(Settings_User)
 
 #		Prolix_Message("Updating Image Calibration for: " + Image_Name + "...")
 #		Image_Calibration = imp.getCalibration()
@@ -1400,7 +1417,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 #		Prolix_Message("Updating Image Calibration: " + Image_Name + ". Done.")
 		Batch_Message = ""
 		Dialog_Counter += 1
-	return Field_Uniformity_Settings_User, Microscope_Settings_User, User_Click, Dialog_Counter, Test_Processing, Batch_Message
+	return Settings_User, User_Click, Dialog_Counter, Test_Processing, Batch_Message
 
 
 
@@ -1408,15 +1425,15 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 # Return a Data_File a list containing the data for all Channels for a given image
 def Measure_Uniformity_All_Ch(imp, Save_File): # Run on all channels.
 	Image_Info = Get_Image_Info(imp)
-	Image_Name = Image_Info["Image_Name"]
+	Image_Name = imp.getTitle()
 	Prolix_Message("Processing all channels for {}...".format(Image_Name))
-	Current_Channel = Image_Info["Current_Channel"]
-	Field_Uniformity_Settings_Stored = Read_Preferences(Settings_Templates_List["Field_Uniformity_Settings_Template"])
-	#Microscope_Settings_Stored = Read_Preferences(Settings_Templates_List["Microscope_Settings_Template"])
+	Nb_Channels = imp.getNChannels()
+	Current_Channel = imp.getChannel()
+	Settings_Stored = Read_Preferences(Settings_Template)
 	Data_File = [] # Store the dictionnaries containing the data for each Channel
 
 	# Run Uniformity Single Channel and append the data
-	for Channel in range(1, Image_Info["Nb_Channels"] + 1):
+	for Channel in range(1, Nb_Channels + 1):
 		Data_Ch, _ = Measure_Uniformity_Single_Channel(imp, Channel, Save_File, Display = False)
 		Data_File.append(Data_Ch)
 
@@ -1516,7 +1533,7 @@ def Measure_Uniformity_All_Ch(imp, Save_File): # Run on all channels.
 	]
 
 	Output_Data_CSV_Path = Generate_Unique_Filepath(Output_Dir, Image_Info["Basename"], "Uniformity-Data", ".csv")
-	if Save_File and Field_Uniformity_Settings_Stored["Field_Uniformity.Save_Individual_Files"]:
+	if Save_File and Settings_Stored[Function_Name+".Save_Individual_Files"]:
 		CSV_File = open(Output_Data_CSV_Path, "w")
 		CSV_Writer = csv.writer(CSV_File, delimiter = ",", lineterminator = "\n")
  		CSV_Writer.writerow(Data_File_Header)
@@ -1526,7 +1543,7 @@ def Measure_Uniformity_All_Ch(imp, Save_File): # Run on all channels.
 				Row.append(Data_Ch[Key])
 			CSV_Writer.writerow(Row)
 		CSV_File.close()
-	Prolix_Message("Processing all channels for {}. Done.".format(Image_Name))
+	Prolix_Message("Success processing all channels for {}.".format(Image_Name))
 	return Data_File
 
 
@@ -1534,10 +1551,8 @@ def Measure_Uniformity_All_Ch(imp, Save_File): # Run on all channels.
 # Return Data_Ch a dictionnary with data for the selected Channel
 def Measure_Uniformity_Single_Channel(imp, Channel, Save_File, Display):
  	Image_Info = Get_Image_Info(imp)
- 	Image_Name = Image_Info["Image_Name"]
-
- 	Field_Uniformity_Settings_Stored = Read_Preferences(Settings_Templates_List["Field_Uniformity_Settings_Template"])
- 	Microscope_Settings_Stored = Read_Preferences(Settings_Templates_List["Microscope_Settings_Template"])
+ 	Image_Name = imp.getTitle()
+ 	Settings_Stored = Read_Preferences(Settings_Template)
 
  	imp.setDisplayMode(IJ.COLOR)
 	imp.setC(Channel) # Channel starts from 1 to Image_Info[Nb_Channels]
@@ -1552,9 +1567,9 @@ def Measure_Uniformity_Single_Channel(imp, Channel, Save_File, Display):
 	if CV <= 1:
 		Uniformity_CV = Calculate_Uniformity_CV(CV)
 	else:
-		Uniformity_CV = "Too high"
+		Uniformity_CV = 0
 
-	if Field_Uniformity_Settings_Stored["Field_Uniformity.Binning_Method"] == "Iso-Intensity":
+	if Settings_Stored[Function_Name+".Binning_Method"] == "Iso-Intensity":
 		Duplicated_Ch_imp, X_Ref, Y_Ref, X_Ref_Pix, Y_Ref_Pix = Bin_Image_Iso_Intensity(imp, Channel, Display, Nb_Bins = 10, Final_Bin_Size = 25)
 	else:
 		Duplicated_Ch_imp, X_Ref, Y_Ref, X_Ref_Pix, Y_Ref_Pix = Bin_Image_Iso_Density(imp, Channel, Display, Nb_Bins = 10, Final_Bin_Size = 25)
@@ -1566,15 +1581,15 @@ def Measure_Uniformity_Single_Channel(imp, Channel, Save_File, Display):
 	Data_Ch = {
 	"Filename": Image_Info["Filename"],
 	"Channel_Nb": Channel,
-	"Objective_Mag": Microscope_Settings_Stored["Field_Uniformity.Microscope.Objective_Mag"],
-	"Objective_NA": "%.1f" % Microscope_Settings_Stored["Field_Uniformity.Microscope.Objective_NA"],
-	"Objective_Immersion":	Microscope_Settings_Stored["Field_Uniformity.Microscope.Objective_Immersion"],
-	"Gaussian_Blur": Field_Uniformity_Settings_Stored["Field_Uniformity.Gaussian_Blur"],
-	"Gaussian_Sigma": "%.1f" % Field_Uniformity_Settings_Stored["Field_Uniformity.Gaussian_Sigma"],
-	"Binning_Method": Field_Uniformity_Settings_Stored["Field_Uniformity.Binning_Method"],
-	"Batch_Mode": Field_Uniformity_Settings_Stored["Field_Uniformity.Batch_Mode"],
-	"Save_Individual_Files": Field_Uniformity_Settings_Stored["Field_Uniformity.Save_Individual_Files"],
-	"Prolix_Mode": Field_Uniformity_Settings_Stored["Field_Uniformity.Prolix_Mode"],
+	"Objective_Mag": Settings_Stored[Function_Name+".Objective_Mag"],
+	"Objective_NA": "%.1f" % Settings_Stored[Function_Name+".Objective_NA"],
+	"Objective_Immersion":	Settings_Stored[Function_Name+".Objective_Immersion"],
+	"Gaussian_Blur": Settings_Stored[Function_Name+".Gaussian_Blur"],
+	"Gaussian_Sigma": "%.1f" % Settings_Stored[Function_Name+".Gaussian_Sigma"],
+	"Binning_Method": Settings_Stored[Function_Name+".Binning_Method"],
+	"Batch_Mode": Settings_Stored[Function_Name+".Batch_Mode"],
+	"Save_Individual_Files": Settings_Stored[Function_Name+".Save_Individual_Files"],
+	"Prolix_Mode": Settings_Stored[Function_Name+".Prolix_Mode"],
 	"Intensity_Min": "%.1f" % Min,
 	"Intensity_Max": "%.1f" % Max,
 	"Intensity_Mean": "%.1f" % Mean,
@@ -1606,14 +1621,19 @@ def Measure_Uniformity_Single_Channel(imp, Channel, Save_File, Display):
 	}
 
 	if Save_File:
-		Data_Ch["Channel_Name"] = Microscope_Settings_Stored["Field_Uniformity.Microscope.Channel_Names"][Channel-1]
-		Data_Ch["Channel_Wavelength_EM"] = "%.2g" % Microscope_Settings_Stored["Field_Uniformity.Microscope.Channel_WavelengthsEM"][Channel-1]
+		Data_Ch["Channel_Name"] = Settings_Stored[Function_Name+".Channel_Names"][Channel-1]
+		Data_Ch["Channel_Wavelength_EM"] = "%.2g" % Settings_Stored[Function_Name+".Channel_WavelengthsEM"][Channel-1]
 
-	if Save_File and Field_Uniformity_Settings_Stored["Field_Uniformity.Save_Individual_Files"]:
-		Output_Image_Path = Generate_Unique_Filepath(Output_Dir, Image_Info["Basename"] + "_Channel-0" + str(Channel), "Binned", ".tif")
+	if Save_File and Settings_Stored[Function_Name+".Save_Individual_Files"]:
+		if Settings_Stored[Function_Name+".Binning_Method"] == "Iso-Intensity":
+			Image_Suffix = "Iso-Intensity"
+		else:
+			Image_Suffix = "Iso-Density"
+
+		Output_Image_Path = Generate_Unique_Filepath(Output_Dir, Image_Info["Basename"] + "_Channel-0{}_{}".format(Channel, Data_Ch["Channel_Name"]), Image_Suffix, ".tif")
 		IJ.saveAs(Duplicated_Ch_imp, "Tiff", Output_Image_Path)
 	if Display:
-		Zoom.set(Duplicated_Ch_imp, 0.5);
+		#Zoom.set(Duplicated_Ch_imp, 0.5);
 		Duplicated_Ch_imp.show()
 	if not Display:
 		Duplicated_Ch_imp.changes = False
@@ -1623,7 +1643,8 @@ def Measure_Uniformity_Single_Channel(imp, Channel, Save_File, Display):
 
 # Get the statistics of the image
 def Get_Image_Statistics(imp):
-	Prolix_Message("Getting Image {} statistics...".format(imp))
+	Image_Name = imp.getTitle()
+	Prolix_Message("Getting statistics for {}...".format(Image_Name))
 	ip = imp.getProcessor()
 	Stats = ip.getStatistics()
 	Min = Stats.min
@@ -1634,21 +1655,23 @@ def Get_Image_Statistics(imp):
 	Hist = list(Stats.histogram())
 	Mode = Stats.mode
 	nPixels = Stats.pixelCount
-	Prolix_Message("Success getting Image {} Statistics.".format(imp))
+	Prolix_Message("Success getting statistics for {}.".format(Image_Name))
 	return ip, Min, Max, Mean, Std_Dev, Median, Hist, Mode, nPixels
 
 
 # Calculate the Uniformity the same way than MetroloJ QC
 def Calculate_Uniformity_Std(imp):
-	Prolix_Message("Calculating Uniformity Standard...")
+	Image_Name = imp.getTitle()
+	Prolix_Message("Calculating Uniformity Standard for {}...".format(Image_Name))
 	ip, Min, Max, Mean, Std_Dev, Median, Hist, Mode, nPixels = Get_Image_Statistics(imp)
 	Uniformity_Std = (Min / Max)
-	Prolix_Message("Success calculating Uniformity Standard = {}.".format(Uniformity_Std))
+	Prolix_Message("Success calculating Uniformity Standard for {} Uniformity Standard = {}.".format(Image_Name, Uniformity_Std))
 	return Uniformity_Std
 
 # Calculate the Uniformity using the 5% 95% percentile
 def Calculate_Uniformity_Percentile(imp, Percentile = 0.05):
-	Prolix_Message("Calculating Uniformity from {}-{} Percentile...".format((100*Percentile), (1-Percentile)*100))
+#	Prolix_Message("Calculating Uniformity from {}-{} Percentile for {}...".format(str(100*Percentile), str(1-Percentile)*100), imp)
+	Image_Name = imp.getTitle()
 	IJ.run(imp, "Select None", "");
 	ip, Min, Max, Mean, Std_Dev, Median, Hist, Mode, nPixels = Get_Image_Statistics(imp)
 	Pixels = ip.getPixels()
@@ -1663,13 +1686,14 @@ def Calculate_Uniformity_Percentile(imp, Percentile = 0.05):
 
 # Calculate the Coefficient of Variation
 def Calculate_CV(imp):
-	Prolix_Message("Calculating Coefficient of Variation...")
+	Image_Name = imp.getTitle()
+	Prolix_Message("Calculating Coefficient of Variation for {}...".format(Image_Name))
 	ip, Min, Max, Mean, Std_Dev, Median, Hist, Mode, nPixels = Get_Image_Statistics(imp)
 	if Mean != 0:
 		CV = (Std_Dev / Mean)
 	else:
 		CV = 0
-	Prolix_Message("Success calculating Coefficient of Variation = {}".format(CV))
+	Prolix_Message("Success calculating Coefficient of Variation for {}. CV = {}".format(Image_Name, CV))
 	return CV
 
 # Calculate the Uniformity from the CV
@@ -1679,19 +1703,20 @@ def Calculate_Uniformity_CV(CV):
 
 # Calculate the Centering Accuracy Require the X and Y coordinate of the Reference ROI
 def Calculate_Centering_Accuracy(imp, X_Ref_Pix, Y_Ref_Pix):
-	Prolix_Message("Calculating Centering Accuracy with X_Ref_Pix = {}, Y_Ref_Pix = {} ...".format(X_Ref_Pix, Y_Ref_Pix))
+	Image_Name = imp.getTitle()
+	Prolix_Message("Calculating Centering Accuracy with X_Ref_Pix = {}, Y_Ref_Pix = {} for {}...".format(X_Ref_Pix, Y_Ref_Pix, Image_Name))
 	ip, Min, Max, Mean, Std_Dev, Median, Hist, Mode, nPixels = Get_Image_Statistics(imp)
 	Width = ip.getWidth()
 	Height = ip.getHeight()
 	Centering_Accuracy = 1 - (2 / sqrt(Width**2 + Height**2)) * sqrt ( (X_Ref_Pix - Width/2)**2 + (Y_Ref_Pix - Height/2)**2)
-	Prolix_Message("Success calculating Centering Accuracy = {}.".format(Centering_Accuracy))
+	Prolix_Message("Success calculating Centering Accuracy for {} Centering Accuracy = {}.".format(Image_Name, Centering_Accuracy))
 	return Centering_Accuracy
 
 # Calculate the Field_Illumination_Index Require the X and Y coordinate of the Reference ROI
 def Calculate_Field_Illumination_Index(Uniformity_CV, Centering_Accuracy, Weight = 0.5):
-	Prolix_Message("Calculating Field_Illumination_Index with Uniformity_CV = {}, Centering_Accuracy = {} , Weight = {} ...".format(Uniformity_CV, Centering_Accuracy, Weight))
+	Prolix_Message("Calculating Field Illumination Index with Uniformity CV = {}, Centering Accuracy = {} , Weight = {}...".format(Uniformity_CV, Centering_Accuracy, Weight))
 	Field_Illumination_Index = (Weight * Uniformity_CV) + (1 - Weight)* Centering_Accuracy
-	Prolix_Message("Success calculating Field_Illumination_Index = {}".format(Field_Illumination_Index))
+	Prolix_Message("Success calculating Field Illumination Index = {}".format(Field_Illumination_Index))
 	return Field_Illumination_Index
 
 # Duplicate a Channel
@@ -1708,17 +1733,17 @@ def Image_Ch_Duplicator(imp, Channel, Display):
 	Prolix_Message("Success duplicating Channel {} for {}...".format(Channel, Original_Title))
 	return Duplicated_imp # Duplicated Channel with Original Name + ChNb
 
-# Apply Gaussian Blur with Sigma from the preferences ICIT
+# Apply Gaussian Blur with Sigma from the preferences
 def Apply_Gaussian_Blur(imp, Duplicated_Ch_imp, Display):
-	Image_Info = Get_Image_Info(imp)
-	Prolix_Message("Applying Gaussian Blur on {}...".format(Image_Info["Filename"]))
-	Field_Uniformity_Settings_Stored = Read_Preferences(Settings_Templates_List["Field_Uniformity_Settings_Template"])
-	if Field_Uniformity_Settings_Stored["Field_Uniformity.Gaussian_Blur"]:
-		Sigma = Field_Uniformity_Settings_Stored["Field_Uniformity.Gaussian_Sigma"]
+	Image_Name = imp.getTitle()
+	Prolix_Message("Applying Gaussian Blur on {}...".format(Image_Name))
+	Settings_Stored = Read_Preferences(Settings_Template)
+	if Settings_Stored[Function_Name+".Gaussian_Blur"]:
+		Sigma = Settings_Stored[Function_Name+".Gaussian_Sigma"]
 		ip = Duplicated_Ch_imp.getProcessor()
 		Blur = GaussianBlur()
 		Blur.blurGaussian(ip, float(Sigma))
-		Prolix_Message("Success applying Gaussian Blur on {}.".format(Image_Info["Filename"]))
+		Prolix_Message("Success applying Gaussian Blur on {}.".format(Image_Name))
 		if Display:
 			#Zoom.set(imp, 0.5);
 			imp.show()
@@ -1729,26 +1754,43 @@ def Apply_Gaussian_Blur(imp, Duplicated_Ch_imp, Display):
 
 # This is one of the two core functions of the Uniformity_Single_Channel
 def Bin_Image_Iso_Intensity(imp, Channel, Display, Nb_Bins=10, Final_Bin_Size=25):
+	Image_Name = imp.getTitle()
 	Image_Info = Get_Image_Info(imp) # Can only be used on an image written of disk
-	Prolix_Message("Binning Image {} with Iso-Intensity...".format(Image_Info["Filename"]))
-	Height = Image_Info["Height"]
-	Width = Image_Info["Width"]
+	Prolix_Message("Binning {} with Iso-Intensity...".format(Image_Name))
+	Height = imp.getHeight()
+	Width = imp.getWidth()
 	imp.setRoi(None)
 	imp.setDisplayMode(IJ.COLOR)
 	imp.setC(Channel) # Channel starts from 1 to Image_Info[Nb_Channels]
 	imp.updateAndDraw()
 
-	Field_Uniformity_Settings_Stored = Read_Preferences(Settings_Templates_List["Field_Uniformity_Settings_Template"])
+	Settings_Stored = Read_Preferences(Settings_Template)
 
 	imp.setRoi(None)
 
 	Duplicated_Ch_imp = Image_Ch_Duplicator(imp, Channel, Display)
 
-	if Field_Uniformity_Settings_Stored["Field_Uniformity.Gaussian_Blur"]:
+	if Settings_Stored[Function_Name+".Gaussian_Blur"]:
 		Duplicated_Ch_imp.setRoi(None)
 		Apply_Gaussian_Blur(imp, Duplicated_Ch_imp, Display)
 
 	Duplicated_Ch_imp.setRoi(None)
+	# Convert The image into the correct Type
+	if Image_Info["Image_Type"]== 0: # 8-bit Get Pixel recover valyes of ByteProcessor as signed Byte -127 ; +127. which is not what we expect. So we convert into 16 bit
+		ImageConverter.setDoScaling(False)
+		IJ.run(Duplicated_Ch_imp, "16-bit", "")
+	elif Image_Info["Image_Type"]== 1: # 16 bit
+		# Do nothing
+		Dummy=""
+	elif Image_Info["Image_Type"]== 2: #Floating Point
+		Dummy=""
+	elif Image_Info["Image_Type"]== 3: #8 bit color indexed
+		ImageConverter.setDoScaling(False)
+		IJ.run(Duplicated_Ch_imp, "16-bit", "")
+	elif Image_Info["Image_Type"]== 4: #24-bit color
+		ImageConverter.setDoScaling(False)
+		IJ.run(Duplicated_Ch_imp, "16-bit", "")
+
 	ip, Min, Max, Mean, Std_Dev, Median, Hist, Mode, nPixels = Get_Image_Statistics(Duplicated_Ch_imp)
 
 	Intensity_Range = Max - Min
@@ -1805,10 +1847,6 @@ def Bin_Image_Iso_Intensity(imp, Channel, Display, Nb_Bins=10, Final_Bin_Size=25
 		if Nb_Roi > 0:
 			Roi_Manager.close()
 			#Roi_Manager.reset() # Cause errors
-		Prolix_Message("Max_Area = {}.".format(Max_Area))
-		Prolix_Message("Max_Area_Index = {}.".format(Max_Area_Index))
-		Prolix_Message("X_Ref = {}.".format(X_Ref))
-		Prolix_Message("Y_Ref = {}.".format(Y_Ref))
 		Label_Text = "< Center here"
 	else:
 		X_Ref, Y_Ref = Width/2, Height/2
@@ -1828,17 +1866,11 @@ def Bin_Image_Iso_Intensity(imp, Channel, Display, Nb_Bins=10, Final_Bin_Size=25
 	else:
 		X_Ref_Pix = X_Ref
 		Y_Ref_Pix = Y_Ref
-	Prolix_Message("X_Ref_Pix = {}.".format(X_Ref_Pix))
-	Prolix_Message("Y_Ref_Pix = {}.".format(Y_Ref_Pix))
-
 	Duplicated_Ch_imp_Overlay = Overlay()
 	Font_Size = int(max(10, min(int(min(Width, Height) * 0.03), 50)))
 	Font_Settings = Font("Arial", Font.BOLD, Font_Size)
-	Prolix_Message("Font_Size = " + str(Font_Size))
 	OffsetX = -1
 	OffsetY = -int(Font_Size/2)
-	Prolix_Message("OffsetX = " + str(OffsetX))
-	Prolix_Message("OffsetY = " + str(OffsetY))
 	Label = TextRoi(int(X_Ref_Pix+OffsetX), int(Y_Ref_Pix+OffsetY), Label_Text, Font_Settings)
 	Label.setColor(Color.BLACK) # Set the font color to black
 	Duplicated_Ch_imp_Overlay.add(Label)
@@ -1848,28 +1880,44 @@ def Bin_Image_Iso_Intensity(imp, Channel, Display, Nb_Bins=10, Final_Bin_Size=25
 	if Display:
 		#Zoom.set(Duplicated_Ch_imp, 0.5);
 		Duplicated_Ch_imp.show()
-	Prolix_Message("Success binning Image {} with Iso-Intensity.".format(Image_Info["Filename"]))
+	Prolix_Message("Success binning {} with Iso-Intensity.".format(Image_Name))
 	return Duplicated_Ch_imp, X_Ref, Y_Ref, X_Ref_Pix, Y_Ref_Pix
 
 
 # This is the preferred method and core function of the Uniformity_Single_Channel
 def Bin_Image_Iso_Density(imp, Channel, Display, Nb_Bins=10, Final_Bin_Size=25):
+	Image_Name=imp.getTitle()
 	Image_Info = Get_Image_Info(imp) # Can only be used on an image written of disk
-	Prolix_Message("Binning Image {} with Iso-Density.".format(Image_Info["Filename"]))
-	Height = Image_Info["Height"]
-	Width = Image_Info["Width"]
+	Prolix_Message("Binning Image {} with Iso-Density.".format(Image_Name))
+	Height = imp.getHeight()
+	Width = imp.getWidth()
 	imp.setRoi(None)
 	imp.setDisplayMode(IJ.COLOR)
 	imp.setC(Channel) # Channel starts from 1 to Image_Info[Nb_Channels]
 	imp.updateAndDraw()
 
-	Field_Uniformity_Settings_Stored = Read_Preferences(Settings_Templates_List["Field_Uniformity_Settings_Template"])
+	Settings_Stored = Read_Preferences(Settings_Template)
 	imp.setRoi(None)
 	Duplicated_Ch_imp = Image_Ch_Duplicator(imp, Channel, Display)
 
-	if Field_Uniformity_Settings_Stored["Field_Uniformity.Gaussian_Blur"]:
+	if Settings_Stored[Function_Name+".Gaussian_Blur"]:
 		Duplicated_Ch_imp.setRoi(None)
 		Apply_Gaussian_Blur(imp, Duplicated_Ch_imp, Display)
+
+	if Image_Info["Image_Type"]== 0: # 8-bit Get Pixel recover valyes of ByteProcessor as signed Byte -127 ; +127. which is not what we expect. So we convert into 16 bit
+		ImageConverter.setDoScaling(False)
+		IJ.run(Duplicated_Ch_imp, "16-bit", "")
+	elif Image_Info["Image_Type"]== 1: # 16 bit
+		# Do nothing
+		Dummy=""
+	elif Image_Info["Image_Type"]== 2: #Floating Point
+		Dummy=""
+	elif Image_Info["Image_Type"]== 3: #8 bit color indexed
+		ImageConverter.setDoScaling(False)
+		IJ.run(Duplicated_Ch_imp, "16-bit", "")
+	elif Image_Info["Image_Type"]== 4: #24-bit color
+		ImageConverter.setDoScaling(False)
+		IJ.run(Duplicated_Ch_imp, "16-bit", "")
 
 	ip, Min, Max, Mean, Std_Dev, Median, Hist, Mode, nPixels = Get_Image_Statistics(Duplicated_Ch_imp)
 	Duplicated_Ch_IP = Duplicated_Ch_imp.getProcessor()
@@ -1877,7 +1925,6 @@ def Bin_Image_Iso_Density(imp, Channel, Display, Nb_Bins=10, Final_Bin_Size=25):
 	Pixels = Duplicated_Ch_IP.getPixels()
 	Sorted_Pixels = sorted(Pixels)
 	Nb_Pixel_Per_Bin = int(nPixels / Nb_Bins)
-	Prolix_Message("Nb_Pixel_Per_Bin = {}".format(Nb_Pixel_Per_Bin))
 
 	Lower_Thresholds = []
 	Upper_Thresholds = []
@@ -1889,8 +1936,6 @@ def Bin_Image_Iso_Density(imp, Channel, Display, Nb_Bins=10, Final_Bin_Size=25):
 			Pixel_Value_High = Sorted_Pixels[int((i+1) * Nb_Pixel_Per_Bin)]
 		Lower_Thresholds.append(Pixel_Value_Low)
 		Upper_Thresholds.append(Pixel_Value_High)
-		Prolix_Message("Pixel_Value_Low = {}".format(Pixel_Value_Low))
-		Prolix_Message("Pixel_Value_High = {}".format(Pixel_Value_High))
 	Duplicated_Ch_imp.setRoi(None)
 	Roi_Manager = RoiManager.getInstance()
 	if Roi_Manager is None:
@@ -1925,8 +1970,6 @@ def Bin_Image_Iso_Density(imp, Channel, Display, Nb_Bins=10, Final_Bin_Size=25):
 			Duplicated_Ch_IP.setValue(New_Intensity)
 			Duplicated_Ch_IP.fill(Roi);
 			Duplicated_Ch_imp.setRoi(None)
-			Prolix_Message("Roi_Index = {}.".format(Roi_Index))
-			Prolix_Message("New_Intensity = {}.".format(New_Intensity))
 
 	Nb_Roi = Roi_Manager.getCount()
 	if Nb_Roi > 0:
@@ -1940,7 +1983,6 @@ def Bin_Image_Iso_Density(imp, Channel, Display, Nb_Bins=10, Final_Bin_Size=25):
 
 	Threshold_Value_Lower = Final_Bin_Size * (Nb_Bins)
 	Threshold_Value_Upper = 255
-	Prolix_Message("Threshold_Value_Lower = {}.".format(Threshold_Value_Lower))
 
 	# Duplicate the image processor to threshold on the last bin
 	Duplicated_Ch_imp.setRoi(None)
@@ -1957,8 +1999,6 @@ def Bin_Image_Iso_Density(imp, Channel, Display, Nb_Bins=10, Final_Bin_Size=25):
 		if Area > Max_Area:
 			Max_Area = Area
 			Max_Area_Index = i
-	Prolix_Message("Max_Area = {}.".format(Max_Area))
-	Prolix_Message("Max_Area_Index = {}.".format(Max_Area_Index))
 
 	if Max_Area_Index != -1:
 		Roi_Manager = RoiManager.getInstance()
@@ -1983,7 +2023,6 @@ def Bin_Image_Iso_Density(imp, Channel, Display, Nb_Bins=10, Final_Bin_Size=25):
 			Roi_Manager.close()
 			#Roi_Manager.reset()
 		Label_Text = "Center not found"
-	Prolix_Message("Label_Text = {}.".format(Label_Text))
 
 	if Image_Info["Space_Unit_Std"] != "pixels":
 		X_Ref_Pix = X_Ref / Image_Info["Pixel_Width"]
@@ -1991,17 +2030,12 @@ def Bin_Image_Iso_Density(imp, Channel, Display, Nb_Bins=10, Final_Bin_Size=25):
 	else:
 		X_Ref_Pix = X_Ref
 		Y_Ref_Pix = Y_Ref
-	Prolix_Message("X_Ref_Pix = {}.".format(X_Ref_Pix))
-	Prolix_Message("Y_Ref_Pix = {}.".format(Y_Ref_Pix))
 
 	Duplicated_Ch_imp_Overlay = Overlay()
 	Font_Size = max(10, min(int(min(Width, Height) * 0.03), 50))
 	Font_Settings = Font("Arial", Font.BOLD, Font_Size)
-	Prolix_Message("Font_Size = {}.".format(Font_Size))
 	OffsetX = -1
 	OffsetY = -int(Font_Size/2)
-	Prolix_Message("OffsetX = {}.".format(OffsetX))
-	Prolix_Message("OffsetY = {}.".format(OffsetY))
 	Label = TextRoi(int(X_Ref_Pix+OffsetX), int(Y_Ref_Pix+OffsetY), Label_Text, Font_Settings)
 	Label.setColor(Color.BLACK) # Set the font color to black
 	Duplicated_Ch_imp_Overlay.add(Label)
@@ -2011,14 +2045,14 @@ def Bin_Image_Iso_Density(imp, Channel, Display, Nb_Bins=10, Final_Bin_Size=25):
 	if Display:
 		#Zoom.set(Duplicated_Ch_imp, 0.5);
 		Duplicated_Ch_imp.show()
-	Prolix_Message("Success binning Image {} with Iso-Density.".format(Image_Info["Filename"]))
+	Prolix_Message("Success binning {} with Iso-Density.".format(Image_Name))
 	return Duplicated_Ch_imp, X_Ref, Y_Ref, X_Ref_Pix, Y_Ref_Pix
 
 
 # We are done with functions... Getting to work now...
 
 # Initializing or Resetting preferences
-Initialize_Preferences(Settings_Templates_List, Reset_Preferences)
+Initialize_Preferences(Settings_Template, Reset_Preferences)
 
 # Get some images Opened or Selected from a folder
 Image_List = Get_Images()
@@ -2055,7 +2089,7 @@ Reader = csv.reader(Input_File, delimiter=',', lineterminator='\n')
 Header = next(Reader)
 
 # Adjust this index to the column containing the filenames
-Filename_Column_Index = 0  # Example: 0 for the first column
+Filename_Column_Index = 0 # Example: 0 for the first column
 Selected_Columns = [0, 1, 2, 4, 28, 29, 30, 31, 32, 39, 40]
 
 # Select header for output
@@ -2068,9 +2102,9 @@ Processed_Rows = []
 # First pass: Process rows to determine maximum filename parts
 for Row in Reader:
 	Filename = Row[Filename_Column_Index]
-	Filename_Variables = Filename.split("_")  # Split the filename
+	Filename_Variables = Filename.split("_") # Split the filename
 	if "." in Filename_Variables[-1]:
-		Filename_Variables[-1] = os.path.splitext(Filename_Variables[-1])[0]  # Use os.path.splitext or split manually
+		Filename_Variables[-1] = os.path.splitext(Filename_Variables[-1])[0] # Use os.path.splitext or split manually
 
 	Max_Filename_Variables = max(Max_Filename_Variables, len(Filename_Variables))
 	Selected_Row = [Row[i] for i in Selected_Columns]
@@ -2090,7 +2124,7 @@ Updated_Header = (
 # Write the updated data
 Output_File = open(Output_Simple_Data_CSV_Path, 'w')
 CSV_Writer = csv.writer(Output_File, delimiter = ',', lineterminator = '\n')
-CSV_Writer.writerow(Updated_Header)  # Write the header
+CSV_Writer.writerow(Updated_Header) # Write the header
 
 # Second pass: Write rows with padding for variable columns
 for Selected_Row, Filename_Variables in Processed_Rows:
@@ -2109,16 +2143,16 @@ Input_File.close()
 
 
 
-#0.  Filename
-#1.  Channel_Nb
-#2.  Channel_Name
-#3.  Channel_Wavelength_EM
-#4.  Objective_Mag
-#5.  Objective_NA
-#6.  Objective_Immersion
-#7.  Gaussian_Blur
-#8.  Gaussian_Sigma
-#9.  Binning_Method
+#0. Filename
+#1. Channel_Nb
+#2. Channel_Name
+#3. Channel_Wavelength_EM
+#4. Objective_Mag
+#5. Objective_NA
+#6. Objective_Immersion
+#7. Gaussian_Blur
+#8. Gaussian_Sigma
+#9. Binning_Method
 #10. Batch_Mode
 #11. Save_Individual_Files
 #12. Prolix_Mode
@@ -2153,5 +2187,5 @@ Input_File.close()
 # Log the success message indicating the number of processed images
 Message = "{} {} successful.\n{} images have been processed.\nFiles are saved in {}".format(Plugin_Name, Function_Name, len(Processed_Images_List), Output_Dir)
 IJ.log(Message)
-JOptionPane.showMessageDialog(None, Message, Plugin_Name + " " + Function_Name, JOptionPane.INFORMATION_MESSAGE)
+JOptionPane.showMessageDialog(None, Message, "{} {}".format(Plugin_Name, Function_Name), JOptionPane.INFORMATION_MESSAGE)
 java.lang.System.gc() # Cleaning up my mess ;-)

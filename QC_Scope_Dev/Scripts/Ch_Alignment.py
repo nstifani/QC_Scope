@@ -56,88 +56,81 @@ Output_Dir = os.path.join(User_Desktop_Path, "Output") # Where all files are sav
 # Tuple (List) of supported image file extensions. When an input folder is selected only images with these extensions are selected
 Image_Valid_Extensions = (".tif", ".tiff", ".jpg", ".jpeg", ".png", ".czi", ".nd2", ".lif", ".lsm", ".ome.tif", ".ome.tiff")
 
-# Dictionary providing Space units and conversion to a standard
 Space_Unit_Conversion_Dictionary = {
-	"micron": Unicode_Micron_Symbol + "m",
-	"microns":Unicode_Micron_Symbol + "m",
-	Unicode_Micron_Symbol + "m": Unicode_Micron_Symbol + "m",
-	"um": Unicode_Micron_Symbol + "m",
-	"u": Unicode_Micron_Symbol + "m",
-	"nm": "nm",
-	"nanometer": "nm",
-	"nanometers": "nm",
-	"mm": "mm",
-	"millimeter": "mm",
-	"millimeters": "mm",
-	"cm": "cm",
-	"centimeter": "cm",
-	"centimeters": "cm",
-	"m": "m",
-	"meter": "m",
-	"meters": "m",
-	"inch": "in",
-	"inches": "in",
-	"in": "in",
-	"pixel": "pixels",
-	"pixels": "pixels",
-	"": "pixels",
-	}
-
-# Dictionnary of Dictionnaries with Settings to be saved from the Prefs
-Settings_Templates_List = {
-"Ch_Alignment_Settings_Template": {
-	"Ch_Alignment.Trackmate.Detection_Method": "Dog Detector",
-	"Ch_Alignment.Trackmate.DogDetector.Threshold_Value": 20.0,
-	"Ch_Alignment.Trackmate.DogDetector.Median_Filtering": False,
-	"Ch_Alignment.Trackmate.DogDetector.Spot_Diameter": 4.0,
-	"Ch_Alignment.Trackmate.DogDetector.Subpixel_Localization": True,
-	"Ch_Alignment.Trackmate.LogDetector.Threshold_Value": 100.0,
-	"Ch_Alignment.Trackmate.LogDetector.Median_Filtering": False,
-	"Ch_Alignment.Trackmate.LogDetector.Spot_Diameter": 4.0,
-	"Ch_Alignment.Trackmate.LogDetector.Subpixel_Localization": True,
-	"Ch_Alignment.Batch_Mode": True,
-	"Ch_Alignment.Save_Individual_Files": False,
-	"Ch_Alignment.Prolix_Mode": False,
-	},
-
-"Microscope_Settings_Template": {
-	"Ch_Alignment.Microscope.Objective_Mag": "5x",
-	"Ch_Alignment.Microscope.Objective_NA": 1.0,
-	"Ch_Alignment.Microscope.Objective_Immersion": "Air",
-	"Ch_Alignment.Microscope.Channel_Names": ["DAPI", "Alexa488", "Alexa555", "Alexa647", "Alexa730","Alexa731","Alexa732","Alexa733"],
-	"Ch_Alignment.Microscope.Channel_WavelengthsEM": [425, 488, 555, 647, 730, 731, 732, 733]
-	}
+ "micron": Unicode_Micron_Symbol + "m",
+ "microns": Unicode_Micron_Symbol + "m",
+ Unicode_Micron_Symbol + "m": Unicode_Micron_Symbol + "m",
+ "um": Unicode_Micron_Symbol + "m",
+ "u": Unicode_Micron_Symbol + "m",
+ u"\u00B5m": Unicode_Micron_Symbol + "m",
+ "nm": "nm",
+ "nanometer": "nm",
+ "nanometers": "nm",
+ "mm": "mm",
+ "millimeter": "mm",
+ "millimeters": "mm",
+ "cm": "cm",
+ "centimeter": "cm",
+ "centimeters": "cm",
+ "m": "m",
+ "meter": "m",
+ "meters": "m",
+ "inch": "in",
+ "inches": "in",
+ "in": "in",
+ "pixel": "pixels",
+ "pixels": "pixels",
+ "": "pixels",
+ " ": "pixels",
 }
+# Dictionnary of Dictionnaries with Settings to be saved from the Prefs
+
+Settings_Template= {
+	Function_Name+".Trackmate.Detection_Method": "Dog Detector",
+	Function_Name+".Trackmate.DogDetector.Threshold_Value": 20.0,
+	Function_Name+".Trackmate.DogDetector.Median_Filtering": False,
+	Function_Name+".Trackmate.DogDetector.Spot_Diameter": 4.0,
+	Function_Name+".Trackmate.DogDetector.Subpixel_Localization": True,
+	Function_Name+".Trackmate.LogDetector.Threshold_Value": 100.0,
+	Function_Name+".Trackmate.LogDetector.Median_Filtering": False,
+	Function_Name+".Trackmate.LogDetector.Spot_Diameter": 4.0,
+	Function_Name+".Trackmate.LogDetector.Subpixel_Localization": True,
+	Function_Name+".Batch_Mode": True,
+	Function_Name+".Save_Individual_Files": False,
+	Function_Name+".Prolix_Mode": False,
+	Function_Name+".Objective_Mag": "5x",
+	Function_Name+".Objective_NA": 1.0,
+	Function_Name+".Objective_Immersion": "Air",
+	Function_Name+".Channel_Names": ["DAPI","Alexa488","Alexa555","Alexa647","Alexa730","Alexa731","Alexa732","Alexa733"],
+	Function_Name+".Channel_WavelengthsEM": [425,488,555,647,730,731,732,733],
+	}
 
 
-# Some useful functions
-# Make Sure to get all measurements are selected in ImageJ
-IJ.run("Set Measurements...", "area mean standard modal min centroid center perimeter bounding fit shape feret's integrated median skewness kurtosis area_fraction stack redirect=None decimal=3");
 
 # Display a message in the log only in Prolix_Mode
 def Prolix_Message(Message):
-	Ch_Alignment_Settings_Stored = Read_Preferences(Settings_Templates_List["Ch_Alignment_Settings_Template"])
-	if Ch_Alignment_Settings_Stored["Ch_Alignment.Prolix_Mode"]:
+	Settings_Stored = Read_Preferences(Settings_Template)
+	if Settings_Stored[Function_Name + ".Prolix_Mode"]:
 		IJ.log(Message)
 	return
 
 # Check if Setting in the Setting List are in the Preferences. If not, write them from the Templates. Also used to Reset Settings
-def Initialize_Preferences(Settings_Templates_List, Reset_Preferences):
-	for SettingsGroup in Settings_Templates_List.keys():
-	 	for Setting, Value in Settings_Templates_List[SettingsGroup].items():
+def Initialize_Preferences(Settings, Reset_Preferences):
+ 	if Reset_Preferences:
+		Save_Preferences(Settings)
+	else:
+		for Setting, Value in Settings.items():
 		 	if Prefs.get(Setting, None) is None:
-				Save_Preferences(Settings_Templates_List[SettingsGroup])
+				Save_Preferences(Settings)
  				break
-		if Reset_Preferences:
-			Save_Preferences(Settings_Templates_List[SettingsGroup])
 	return
 
 # Read the Preferences an return a dictionnary with the settings
-def Read_Preferences(Settings_Template):
+def Read_Preferences(Settings):
 	Preferences_Stored = {}
-	for Key, Default_Value in Settings_Template.items():
+	for Key, Default_Value in Settings.items():
 		Value = Prefs.get(Key, str(Default_Value))
-		# Use the Type of data from  theTemplate to convert the settings from the Pref in the correct type
+		# Use the Type of data from theTemplate to convert the settings from the Pref in the correct type
 		if isinstance(Default_Value, bool):
 			Value = bool(int(Value)) # Interestingly Boolean are saved as a float in the Pref so we need to convert to int and then to boolean
 		elif isinstance(Default_Value, float):
@@ -179,23 +172,23 @@ def Get_Images():
 		Prolix_Message("Success opened images found: :{}".format("\n".join(Image_List)))
 	else:
 		Image_List = []
-		Prolix_Message("No opened image. Selecting Folder")
+		Prolix_Message("No opened image. Selecting Folder...")
 		while not Image_List:
 			Input_Dir_Path = Select_Folder(Default_Path = User_Desktop_Path)
-			Prolix_Message("Selected Folder {}".format(Input_Dir_Path))
+			Prolix_Message("Selected Folder {}.".format(Input_Dir_Path))
 			for Root, Dirs, Files in os.walk(Input_Dir_Path): # Get Files Recursively
 			# Files = os.listdir(Input_Dir_Path): # Comment the line above and uncomment this line if you don"t want to get files recurcively
 				for File in Files:
 					if File.lower().endswith(tuple(Image_Valid_Extensions)): # Select only files ending with a Image_Valid_extensions
 						Image_List.append(str(os.path.join(Root, File)))
-						Prolix_Message("Success image {} added".format(os.path.join(Root, File)))
+						Prolix_Message("Success adding {}.".format(os.path.join(Root, File)))
 			Image_List.sort()
 			if not Image_List:
 				Message = "Failed No valid image files found in the selected folder."
 				Advice = "Valid image file extensions are: " + ", ".join(Image_Valid_Extensions)
-				IJ.log(Message + "\n" + Advice)
-				JOptionPane.showMessageDialog(None, Message + "\n" + Advice, Plugin_Name +" "+ Function_Name, JOptionPane.INFORMATION_MESSAGE)
-		Prolix_Message("Success List of Images\n{}".format("\n".join(Image_List)))
+				IJ.log("{}\n{}".format(Message, Advice))
+				JOptionPane.showMessageDialog(None, "{}\n{}".format(Message, Advice), "{} {}".format(Plugin_Name, Function_Name), JOptionPane.INFORMATION_MESSAGE)
+		Prolix_Message("Success List of Images:\n{}".format("\n".join(Image_List)))
 	return Image_List
 
 # Return InputDir_Path as a string. Used in Get_Images
@@ -207,11 +200,11 @@ def Select_Folder(Default_Path):
 	Return_Value = Chooser.showOpenDialog(None)
 	if Return_Value == JFileChooser.APPROVE_OPTION:
 		InputDir_Path = Chooser.getSelectedFile().getAbsolutePath()
-		Prolix_Message("Success Selecting Folder: {}. Done.".format(InputDir_Path))
+		Prolix_Message("Success Selecting Folder: {}.".format(InputDir_Path))
 	else:
-		Message="Failed Folder selection was canceled by user."
+		Message="Folder selection was canceled by user."
 		IJ.log(Message)
-		JOptionPane.showMessageDialog(None, Message, Plugin_Name +" "+ Function_Name, JOptionPane.INFORMATION_MESSAGE)
+		JOptionPane.showMessageDialog(None, Message, "{} {}".format(Plugin_Name, Function_Name), JOptionPane.INFORMATION_MESSAGE)
 		sys.exit(Message)
 	return InputDir_Path
 
@@ -223,13 +216,13 @@ def Open_Image_Bioformats(File_Path):
 	try:
 		imps = BF.openImagePlus(Bioformat_Options)
 		if imps and len(imps) > 0:
-			Prolix_Message("Success Importing {} with Bioformats. Done".format(File_Path))
+			Prolix_Message("Success Importing {} with Bioformats.".format(File_Path))
 			return imps[0]
 		else:
-			IJ.log("Failed Importing with Bioformats failed: No Images found in {}".format(File_Path))
+			IJ.log("Failed importation with Bioformats: No Images found in {}".format(File_Path))
 			return
-	except Exception,  Error:
-		IJ.log("Failed Importing with Bioformats: Error opening {}".format(Error))
+	except Exception, Error:
+		IJ.log("Failed Importation with Bioformats: Error opening {}".format(Error))
 		return
 
 # Generate a Unique filepath Directory\Basename_Suffix-001.Extension
@@ -238,21 +231,21 @@ def Generate_Unique_Filepath(Directory, Basename, Suffix, Extension):
 	Filename = "{}_{}{}".format(Basename, Suffix, Extension)
 	Filepath = os.path.join(Directory, Filename)
 	if not os.path.exists(Filepath):
-		Prolix_Message("Success Generating Unique Filepath {}. Done.".format(Basename))
+		Prolix_Message("Success Generating Unique Filepath {}.".format(Basename))
 		return Filepath
 	File_Counter = 2
 	while True:
 		Filename = "{}_{}-{:03d}{}".format(Basename, Suffix, File_Counter, Extension)
 		Filepath = os.path.join(Directory, Filename)
 		if not os.path.exists(Filepath):
-			Prolix_Message("Success Generating Unique Filepath {}. Done.".format(Basename))
+			Prolix_Message("Success Generating Unique Filepath {}.".format(Basename))
 			return Filepath
 		File_Counter += 1
 	return
 
 # Match the Image Space Unit to a defined Standard Space Unit: m, cm, mm, micronSymbo+"m", nm
 def Normalize_Space_Unit(Space_Unit):
-	Prolix_Message("Standardizing space unit: " + str(Space_Unit) + "...")
+	Prolix_Message("Standardizing space unit: {}...".format(Space_Unit))
 	Space_Unit_Std = Space_Unit_Conversion_Dictionary.get(Space_Unit.lower(), "pixels")
 	Prolix_Message("Success Standardizing space unit from {} to {}".format(Space_Unit, Space_Unit_Std))
 	return Space_Unit_Std
@@ -265,16 +258,21 @@ def Get_Image_Info(imp):
 	Image_Name = imp.getTitle()
 	Prolix_Message("Getting Image Info for {}...".format(Image_Name))
 	File_Info = imp.getOriginalFileInfo()
-	if File_Info is not None and File_Info.directory is not None:
-		Filename = File_Info.fileName
-		Input_Dir = File_Info.directory
-		Input_File_Path = os.path.join(Input_Dir, Filename)
-	else:
-		Filename = Image_Name + "_Unknown Origin"
+	if not File_Info :
+		Filename = Image_Name + "_Unsaved"
 		Input_Dir = "N/A"
 		Input_File_Path = "N/A"
-		IJ.log("File is not written on the disk. Proceeding with Filename: {}, Input Dir: {}, Path: {}".format(Filename, Input_Dir, Input_File_Path))
-
+		IJ.log("{} not written on the disk. Proceeding with Filename: {}, Input Dir: {}, Path: {}".format(Image_Name, Filename, Input_Dir, Input_File_Path))
+	else : # File Info is not None
+		Filename = File_Info.fileName
+		Input_Dir = File_Info.directory
+		if not Input_Dir :
+			Input_Dir = "N/A"
+			Input_File_Path = "N/A"
+			IJ.log("{} has no directory. Proceeding with Filename: {}, Input Dir: {}, Path: {}".format(Image_Name, Filename, Input_Dir, Input_File_Path))
+		else:
+			Input_File_Path = os.path.join(Input_Dir, Filename)
+			Prolix_Message("Filename: {}, Input Dir: {}, Path: {}".format(Filename, Input_Dir, Input_File_Path))
 	Basename, Extension = os.path.splitext(Filename)
 	Width = imp.getWidth()
 	Height = imp.getHeight()
@@ -293,7 +291,7 @@ def Get_Image_Info(imp):
 	Time_Unit = Calibration.getTimeUnit()
 	Frame_Interval = Calibration.frameInterval
 	Calibration_Status = Calibration.scaled()
-
+	Image_Type = imp.getType()
 	Space_Unit_Std = Normalize_Space_Unit(Space_Unit)
 
 	# Dictionnary storing all image information
@@ -322,23 +320,21 @@ def Get_Image_Info(imp):
 		"Time_Unit": str(Time_Unit),
 		"Frame_Interval": float(Frame_Interval),
 		"Calibration_Status": bool(Calibration_Status),
+		"Image_Type":int(Image_Type)
 		}
-	Prolix_Message("Getting Image Info for- {}. Done.".format(Image_Name))
+	Prolix_Message("Success getting Image Info for {}.".format(Image_Name))
 	return Image_Info
 
+
 # Get Image Metadata
-# Return Channel_Names_Metadata (list of channel Names as strings)
-# Channel_WavelengthsEM_Metadata a list of Integer
-# Objective_Mag_Metadata a string
-# Objective_NA_Metadata a floating
-# Objective_Immersion_Metadata a string
-def Get_Metadata(imp):
+def Get_Image_Metadata(imp):
 	Image_Name = imp.getTitle()
 	Prolix_Message("Getting Metadata for {}...".format(Image_Name))
+	Image_Metadata = {}
 	Image_Info = Get_Image_Info(imp)
 	if Image_Info["Input_File_Path"] == "N/A":
-		IJ.log("{} {} can only get metadata from images written on the disk. Continuing without getting metadata". format(Plugin_Name, Function_Name))
-		return None, None, None, None, None
+		IJ.log("{} {} can only get metadata from images written on the disk. {} is virtual. Proceeding with information from Preferences...". format(Plugin_Name, Function_Name, Image_Name))
+		return None
 	Bioformat_Options = ImporterOptions()
 	Bioformat_Options.setId(Image_Info["Input_File_Path"])
 	Metadata = MetadataTools.createOMEXMLMetadata()
@@ -347,18 +343,19 @@ def Get_Metadata(imp):
 	Reader.setId(Image_Info["Input_File_Path"])
 	if Metadata.getImageCount() == 0:
 		IJ.log("{} does not contain metadata. Proceeding with information from Preferences...".format(Image_Name))
-		return None, None, None, None, None
+		return None
 	else:
 		Channel_Names_Metadata = []
-		for i in range(1, Image_Info["Nb_Channels"] + 1):
-			Channel_Name = Metadata.getChannelName(0, i-1)
+		for i in range(Metadata.getChannelCount(0)):
+			Channel_Name = Metadata.getChannelName(0, i) # Channel_Name are Unicode
+			if Channel_Name is not None:
+				Channel_Name = str(Channel_Name) # Convert Unicode to regular string
 			Channel_Names_Metadata.append(Channel_Name)
 		if any(Channel_Name is None for Channel_Name in Channel_Names_Metadata):
 			Channel_Names_Metadata = None
-
 		Channel_WavelengthsEM_Metadata = []
-		for i in range(1, Image_Info["Nb_Channels"] + 1):
-			WavelengthEM = Metadata.getChannelEmissionWavelength(0, i-1)
+		for i in range(Metadata.getChannelCount(0)):
+			WavelengthEM = Metadata.getChannelEmissionWavelength(0, i)
 			if WavelengthEM is not None:
 				# Extract numeric value from the wavelength metadata
 				Value_Str = str(WavelengthEM)
@@ -376,20 +373,25 @@ def Get_Metadata(imp):
 
 		# Check if metadata contains objective and instrument information
 		if Metadata.getInstrumentCount() > 0 and Metadata.getObjectiveCount(0) > 0:
-			Objective_Magnification_Metadata = str(int(Metadata.getObjectiveNominalMagnification(0,0)))+"x"
+			Objective_Mag_Metadata = str(int(Metadata.getObjectiveNominalMagnification(0,0)))+"x"
 			Objective_NA_Metadata = float(Metadata.getObjectiveLensNA(0, 0))
 			Objective_Immersion_Metadata = str(Metadata.getObjectiveImmersion(0, 0))
 		else:
-			Objective_Magnification_Metadata = None
+			Objective_Mag_Metadata = None
 			Objective_NA_Metadata = None
 			Objective_Immersion_Metadata = None
-		Prolix_Message("Objective_Magnification_Metadata = {}".format(Objective_Magnification_Metadata))
-		Prolix_Message("Objective_NA_Metadata = {}".format(Objective_NA_Metadata))
-		Prolix_Message("Objective_Immersion_Metadata = {}".format(Objective_Immersion_Metadata))
-		Prolix_Message("Channel Names Metadata = {}".format(str(Channel_Names_Metadata)))
-		Prolix_Message("Channel Wavelengths EM Metadata  = {}".format(Channel_WavelengthsEM_Metadata))
-		Prolix_Message("Getting Metadata for {}. Done.".format(Image_Name))
-	return Channel_Names_Metadata, Channel_WavelengthsEM_Metadata, Objective_Magnification_Metadata, Objective_NA_Metadata, Objective_Immersion_Metadata
+		Prolix_Message("Objective_Mag_Metadata = {}.".format(Objective_Mag_Metadata))
+		Prolix_Message("Objective_NA_Metadata = {}.".format(Objective_NA_Metadata))
+		Prolix_Message("Objective_Immersion_Metadata = {}.".format(Objective_Immersion_Metadata))
+		Prolix_Message("Channel Names Metadata = {}.".format(str(Channel_Names_Metadata)))
+		Prolix_Message("Channel Wavelengths EM Metadata = {}.".format(Channel_WavelengthsEM_Metadata))
+		Prolix_Message("Success getting Metadata for {}.".format(Image_Name))
+		Image_Metadata["Objective_Mag_Metadata"] = Objective_Mag_Metadata
+		Image_Metadata["Objective_NA_Metadata"] = Objective_NA_Metadata
+		Image_Metadata["Objective_Immersion_Metadata"] = Objective_Immersion_Metadata
+		Image_Metadata["Channel_Names_Metadata"] = Channel_Names_Metadata
+		Image_Metadata["Channel_WavelengthsEM_Metadata"] = Channel_WavelengthsEM_Metadata
+	return Image_Metadata
 
 def Get_Refractive_Index(Objective_Immersion): # Get the refractive Index (float) from the Immersion media (String). Return Refracive_Index
 	Prolix_Message("Getting refractive index for {} objective...".format(Objective_Immersion))
@@ -401,7 +403,7 @@ def Get_Refractive_Index(Objective_Immersion): # Get the refractive Index (float
 		"Silicone": 1.40,
 	}
 	Refractive_Index = float(Refractive_Indices.get(Objective_Immersion, 1.0))
-	Prolix_Message("Getting refractive index for {} objective. Done. Refractive Index = {}".format(Objective_Immersion, Refractive_Index))
+	Prolix_Message("Success getting refractive index for {} objective. Refractive Index = {}.".format(Objective_Immersion, Refractive_Index))
 	return Refractive_Index
 
 
@@ -437,7 +439,7 @@ def Get_Refractive_Index(Objective_Immersion): # Get the refractive Index (float
 # Retrurn Processed_Image_List a list of processed images
 
 def Process_Image_List(Image_List):
-	Prolix_Message("Processing Image List")
+	Prolix_Message("Processing Image List {}.".format(Image_List))
 	Processed_Image_List = []
 	Data_All_Files = []
 	Data_Processed_All_Files = []
@@ -453,23 +455,22 @@ def Process_Image_List(Image_List):
 		else: # Image_File is a path, import it with Bioformat
 			imp = Open_Image_Bioformats(Image_File)
 			File_Source = "Folder"
-		Zoom.set(imp, 0.5);
+		#Zoom.set(imp, 0.5);
 		imp.show()
-		Image_Info = Get_Image_Info(imp)
-		Image_Name = Image_Info["Image_Name"]
-		Prolix_Message("Opening {} from {}. Done.".format(Image_Name, File_Source))
+		Image_Name = imp.getTitle()
+		Prolix_Message("Success opening {} from {}.".format(Image_Name, File_Source))
 		# Process the first image with Process_Image function showing a Dialog
 		if Image == 0:
 			Prolix_Message("Processing initial Image {}.".format(Image_Name))
 			Data_All_Files, Data_Processed_All_Files, Processed_Image_List = Process_Image(imp, Data_All_Files, Data_Processed_All_Files, Processed_Image_List, Batch_Message = "")
 		# For subsequent images, check if batch mode is enabled
 		else:
-			Ch_Alignment_Settings_Stored = Read_Preferences(Settings_Templates_List["Ch_Alignment_Settings_Template"])
-			if Ch_Alignment_Settings_Stored["Ch_Alignment.Batch_Mode"]:
+			Settings_Stored = Read_Preferences(Settings_Template)
+			if Settings_Stored[Function_Name+".Batch_Mode"]:
 				Prolix_Message("Processing in batch {}.".format(Image_Name))
 				Data_All_Files, Data_Processed_All_Files, Processed_Image_List = Process_Image_Batch(imp, Data_All_Files, Data_Processed_All_Files, Processed_Image_List)
 			else:
-			 	IJ.log("Failed Batch processing {}. Falling back to regular processing.".format(Image_Name))
+			 	IJ.log("Failed Batch processing {}. Falling back to dialog processing.".format(Image_Name))
 			 	Data_All_Files, Data_Processed_All_Files, Processed_Image_List = Process_Image(imp, Data_All_Files,Data_Processed_All_Files, Processed_Image_List, Batch_Message = "")
 		if File_Source == "Folder":
 			Prolix_Message("Closing {}".format(Image_Name))
@@ -482,52 +483,45 @@ def Process_Image_List(Image_List):
 # Return Processed_Image_List
 # Reset Batch_Message to ""
 def Process_Image(imp, Data_All_Files, Data_Processed_All_Files, Processed_Image_List, Batch_Message):
-	Image_Info = Get_Image_Info(imp)
-	Image_Name = Image_Info["Image_Name"]
+	Image_Name = imp.getTitle()
 	Prolix_Message("Processing {}...".format(Image_Name))
 	Dialog_Counter = 0
 	User_Click = None
 	Test_Processing = False
 	while True:
-		Ch_Alignment_Settings_Stored = Read_Preferences(Settings_Templates_List["Ch_Alignment_Settings_Template"])
-		Microscope_Settings_Stored = Read_Preferences(Settings_Templates_List["Microscope_Settings_Template"])
+		Settings_Stored = Read_Preferences(Settings_Template)
+		
 
 		# Display the main dialog with Metadata and results from predetection
-		Ch_Alignment_Settings_User, Microscope_Settings_User, User_Click, Dialog_Counter, Test_Processing, Nb_Detected_Spot_File, Batch_Message = Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Message)
-
-		Prolix_Message("User Click = {}".format(User_Click))
-		Prolix_Message("Dialog Counter = {}".format(Dialog_Counter))
-		Prolix_Message("Test Processing = {}".format(Test_Processing))
-		Prolix_Message("Batch Message = {}".format(Batch_Message))
-		Prolix_Message("Nb Detected Spot = {}".format(Nb_Detected_Spot_File))
+		Settings_User, User_Click, Dialog_Counter, Test_Processing, Nb_Detected_Spot_File, Batch_Message = Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Message)
 
 		global DetectionMethod
-		DetectionMethod = (Ch_Alignment_Settings_Stored["Ch_Alignment.Trackmate.Detection_Method"]).replace(" ", "")
+		DetectionMethod = (Settings_Stored[Function_Name+".Trackmate.Detection_Method"]).replace(" ", "")
 
-		Ch_Alignment_Settings_Stored_Filtered = {}
-		for Key, Value in Ch_Alignment_Settings_Stored.items():
+		Settings_Stored_Filtered = {}
+		for Key, Value in Settings_Stored.items():
 			if Key in [
-			"Ch_Alignment.Trackmate.Detection_Method",
-			"Ch_Alignment.Trackmate." + DetectionMethod + ".Threshold_Value",
-			"Ch_Alignment.Trackmate." + DetectionMethod + ".Subpixel_Localization",
-			"Ch_Alignment.Trackmate." + DetectionMethod + ".Median_Filtering",
-			"Ch_Alignment.Trackmate." + DetectionMethod + ".Spot_Diameter"
+			Function_Name+".Trackmate.Detection_Method",
+			Function_Name+".Trackmate." + DetectionMethod + ".Threshold_Value",
+			Function_Name+".Trackmate." + DetectionMethod + ".Subpixel_Localization",
+			Function_Name+".Trackmate." + DetectionMethod + ".Median_Filtering",
+			Function_Name+".Trackmate." + DetectionMethod + ".Spot_Diameter"
 			]:
-				Ch_Alignment_Settings_Stored_Filtered[Key] = Value
+				Settings_Stored_Filtered[Key] = Value
 
-		Ch_Alignment_Settings_User_Filtered = {}
-		for Key, Value in Ch_Alignment_Settings_User.items():
+		Settings_User_Filtered = {}
+		for Key, Value in Settings_User.items():
 			if Key in [
-			"Ch_Alignment.Trackmate.Detection_Method",
-			"Ch_Alignment.Trackmate." + DetectionMethod + ".Threshold_Value",
-			"Ch_Alignment.Trackmate." + DetectionMethod + ".Subpixel_Localization",
-			"Ch_Alignment.Trackmate." + DetectionMethod + ".Median_Filtering",
-			"Ch_Alignment.Trackmate." + DetectionMethod + ".Spot_Diameter"
+			Function_Name+".Trackmate.Detection_Method",
+			Function_Name+".Trackmate." + DetectionMethod + ".Threshold_Value",
+			Function_Name+".Trackmate." + DetectionMethod + ".Subpixel_Localization",
+			Function_Name+".Trackmate." + DetectionMethod + ".Median_Filtering",
+			Function_Name+".Trackmate." + DetectionMethod + ".Spot_Diameter"
 			]:
-				Ch_Alignment_Settings_User_Filtered[Key] = Value
+				Settings_User_Filtered[Key] = Value
 
 		# All conditions must be fulfilled to proceed
-		if User_Click == "OK" and not Test_Processing and all(Nb_Spot == 1 for Nb_Spot in Nb_Detected_Spot_File) and Ch_Alignment_Settings_Stored_Filtered == Ch_Alignment_Settings_User_Filtered: # and Microscope_Settings_User == Microscope_Settings_Stored:
+		if User_Click == "OK" and not Test_Processing and all(Nb_Spot == 1 for Nb_Spot in Nb_Detected_Spot_File) and Settings_Stored_Filtered == Settings_User_Filtered:
 			break # Break the while loop
 		elif User_Click == "Cancel":
 			Message = "Processing {}, User Canceled operation".format(Image_Name)
@@ -548,36 +542,42 @@ def Process_Image(imp, Data_All_Files, Data_Processed_All_Files, Processed_Image
 # Process Image without Dialog Check for metadata compatibility
 # Return Data_All_Files, Processed_Image_List and a Batch_Message to be passed to the Dialog in case of Metadata and Settings Mismatch
 def Process_Image_Batch(imp, Data_All_Files, Data_Processed_All_Files, Processed_Image_List):
-	Image_Info = Get_Image_Info(imp)
-	Image_Name = Image_Info["Image_Name"]
-	Nb_Channels = Image_Info["Nb_Channels"]
-	Prolix_Message("Processing in batch {}...". format(Image_Name))
+	Image_Name = imp.getTitle()
+	Nb_Channels = imp.getNChannels()
+	Prolix_Message("Processing {} in batch...". format(Image_Name))
 
-	Ch_Alignment_Settings_Stored = Read_Preferences(Settings_Templates_List["Ch_Alignment_Settings_Template"])
-	Microscope_Settings_Stored = Read_Preferences(Settings_Templates_List["Microscope_Settings_Template"])
+	Settings_Stored = Read_Preferences(Settings_Template)
+	Channel_Names_Stored = Settings_Stored[Function_Name+".Channel_Names"]
+	Channel_WavelengthsEM_Stored = Settings_Stored[Function_Name+".Channel_WavelengthsEM"]
+	Objective_Mag_Stored = Settings_Stored[Function_Name+".Objective_Mag"]
+	Objective_NA_Stored = Settings_Stored[Function_Name+".Objective_NA"]
+	Objective_Immersion_Stored = Settings_Stored[Function_Name+".Objective_Immersion"]
 
 	# Trying to get some metadata
-	Channel_Names_Metadata, Channel_WavelengthsEM_Metadata, Objective_Mag_Metadata, Objective_NA_Metadata, Objective_Immersion_Metadata = Get_Metadata(imp)
-
+	Image_Metadata = Get_Image_Metadata(imp)
+	
 	# Check for presence of metadata and compare it with stored preferences
 	Batch_Message = ""
-	if Channel_Names_Metadata or Channel_Names_Metadata or Objective_Mag_Metadata or Objective_NA_Metadata or Objective_Immersion_Metadata:
-		if str(Objective_Mag_Metadata) != str(Microscope_Settings_Stored["Ch_Alignment.Microscope.Objective_Mag"]):
-			Batch_Message = Batch_Message + "Objective Magnification Metadata {}. Preferences: {}.".format(Objective_Mag_Metadata, Microscope_Settings_Stored["Ch_Alignment.Microscope.Objective_Mag"])
+	if Image_Metadata is not None:
+		Channel_Names_Metadata = Image_Metadata["Channel_Names_Metadata"]
+		Channel_WavelengthsEM_Metadata = Image_Metadata["Channel_WavelengthsEM_Metadata"]
+		Objective_Mag_Metadata = Image_Metadata["Objective_Mag_Metadata"]
+		Objective_NA_Metadata = Image_Metadata["Objective_NA_Metadata"]
+		Objective_Immersion_Metadata = Image_Metadata["Objective_Immersion_Metadata"]
 
-		if float(Objective_NA_Metadata) != float(Microscope_Settings_Stored["Ch_Alignment.Microscope.Objective_NA"]):
-			Batch_Message = Batch_Message + "\n" + "Objective NA Metadata: " + str(Objective_NA_Metadata) + ". Preferences: " + str(Microscope_Settings_Stored["Ch_Alignment.Microscope.Objective_NA"]) + "."
-
-		if str(Objective_Immersion_Metadata) != str(Microscope_Settings_Stored["Ch_Alignment.Microscope.Objective_Immersion"]):
-			Batch_Message = Batch_Message + "\n" + "Objective Immersion Metadata {}. Preferences: {}.".format(Objective_Immersion_Metadata, Microscope_Settings_Stored["Ch_Alignment.Microscope.Objective_Immersion"])
-
-		if Nb_Channels > len(Microscope_Settings_Stored["Ch_Alignment.Microscope.Channel_Names"]):
-			Batch_Message = Batch_Message + "\n" + "Nb of Channels Image: Metadata {}. Preferences: {}.".format(Nb_Channels, len(Microscope_Settings_Stored["Ch_Alignment.Microscope.Channel_Names"]))
+		if Objective_Mag_Metadata != Objective_Mag_Stored:
+			Batch_Message = Batch_Message + "Objective Magnification Metadata: {}. Preferences: {}.".format(Objective_Mag_Metadata, Objective_Mag_Stored)
+		if Objective_NA_Metadata != Objective_NA_Stored:
+			Batch_Message = Batch_Message + "\n" + "Objective NA Metadata: {}. Preferences: {}.".format(Objective_NA_Metadata, Objective_NA_Stored)
+		if Objective_Immersion_Metadata != Objective_Immersion_Stored:
+			Batch_Message = Batch_Message + "\n" + "Objective Immersion Metadata: {}. Preferences: {}.".format(Objective_Immersion_Metadata, Objective_Immersion_Stored)
+		if Nb_Channels > len(Channel_Names_Stored):
+			Batch_Message = Batch_Message + "\n" + "Nb of Channels Image: {}. Preferences: {}.".format(Nb_Channels, len(Channel_Names_Stored))
 		else: # Nb of Channels is sufficient check Matching values
-			if Channel_Names_Metadata != Microscope_Settings_Stored["Ch_Alignment.Microscope.Channel_Names"][:Nb_Channels]:
-				Batch_Message = Batch_Message + "\n" + "Channel Names Metadata {}. Preferences: {}.".format(str(Channel_Names_Metadata), Microscope_Settings_Stored["Ch_Alignment.Microscope.Channel_Names"][:Nb_Channels])
-			if Channel_WavelengthsEM_Metadata != Microscope_Settings_Stored["Ch_Alignment.Microscope.Channel_WavelengthsEM"][:Nb_Channels]:
-				Batch_Message = Batch_Message + "\n" + "Channel Emission Wavelengths Metadata {}. Preferences: {}.".format(Channel_WavelengthsEM_Metadata, Microscope_Settings_Stored["Ch_Alignment.Microscope.Channel_WavelengthsEM"][:Nb_Channels])
+			if Channel_Names_Metadata != Channel_Names_Stored[:Nb_Channels]:
+				Batch_Message = Batch_Message + "\n" + "Channel Names Metadata: {}. Preferences: {}.".format(Channel_Names_Metadata, Channel_Names_Stored[:Nb_Channels])
+			if Channel_WavelengthsEM_Metadata != Channel_WavelengthsEM_Stored[:Nb_Channels]:
+				Batch_Message = Batch_Message + "\n" + "Channel Emission Wavelengths Metadata: {}. Preferences: {}.".format(Channel_WavelengthsEM_Metadata, Channel_WavelengthsEM_Stored[:Nb_Channels])
 		if Batch_Message != "":
 			Batch_Message = "Metadata differ from preferences. {}".format(Batch_Message)
 			Prolix_Message(Batch_Message)
@@ -585,7 +585,7 @@ def Process_Image_Batch(imp, Data_All_Files, Data_Processed_All_Files, Processed
 		else:
 			Batch_Processing = "Pass"
 	else: # No Metadata found try with stored data
-		if Nb_Channels <= len(Microscope_Settings_Stored["Ch_Alignment.Microscope.Channel_Names"]) and Nb_Channels <= len(Microscope_Settings_Stored["Ch_Alignment.Microscope.Channel_WavelengthsEM"]):
+		if Nb_Channels <= len(Channel_WavelengthsEM_Stored) and Nb_Channels <= len(Channel_WavelengthsEM_Stored):
 			Batch_Processing = "Pass"
 		else:
 			Batch_Processing = "Fail"
@@ -608,25 +608,31 @@ def Process_Image_Batch(imp, Data_All_Files, Data_Processed_All_Files, Processed
 
 
 # Display a Dialog when Processing an image excepted in Batch_Mode
-# Return Ch_Alignment_Settings_User, Microscope_Settings_User, User_Click, Dialog_Counter, Test_Processing, Batch_Message
 # The Dialog uses Javax Swing and takes some lines... Sorry...
 def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Message):
+	Image_Name = imp.getTitle()
 	Image_Info = Get_Image_Info(imp)
-	Image_Name = Image_Info["Image_Name"]
-	Current_Channel = Image_Info["Current_Channel"]
+	Nb_Channels = imp.getNChannels()
+	Current_Channel = imp.getChannel()
 	Prolix_Message("Displaying Processing Dialog for {}...".format(Image_Name))
 
-	# Getting Metadata and Stored settings
-	Channel_Names_Metadata, Channel_WavelengthsEM_Metadata, Objective_Mag_Metadata, Objective_NA_Metadata, Objective_Immersion_Metadata = Get_Metadata(imp)
-	Ch_Alignment_Settings_Stored = Read_Preferences(Settings_Templates_List["Ch_Alignment_Settings_Template"])
-	Microscope_Settings_Stored = Read_Preferences(Settings_Templates_List["Microscope_Settings_Template"])
+	Image_Metadata = Get_Image_Metadata(imp)
 
-	# Displaying Metadata in priority and Stored values as fall back
-	Objective_Mag_Stored = Microscope_Settings_Stored["Ch_Alignment.Microscope.Objective_Mag"]
-	Objective_NA_Stored = Microscope_Settings_Stored["Ch_Alignment.Microscope.Objective_NA"]
-	Objective_Immersion_Stored = Microscope_Settings_Stored["Ch_Alignment.Microscope.Objective_Immersion"]
-	Channel_Names_Stored = Microscope_Settings_Stored["Ch_Alignment.Microscope.Channel_Names"]
-	Channel_WavelengthsEM_Stored = Microscope_Settings_Stored["Ch_Alignment.Microscope.Channel_WavelengthsEM"]
+	# Check for presence of metadata and compare it with stored preferences
+	if Image_Metadata is not None:
+		Channel_Names_Metadata = Image_Metadata["Channel_Names_Metadata"]
+		Channel_WavelengthsEM_Metadata = Image_Metadata["Channel_WavelengthsEM_Metadata"]
+		Objective_Mag_Metadata = Image_Metadata["Objective_Mag_Metadata"]
+		Objective_NA_Metadata = Image_Metadata["Objective_NA_Metadata"]
+		Objective_Immersion_Metadata = Image_Metadata["Objective_Immersion_Metadata"]
+
+
+	Settings_Stored = Read_Preferences(Settings_Template)
+	Channel_Names_Stored = Settings_Stored[Function_Name+".Channel_Names"]
+	Channel_WavelengthsEM_Stored = Settings_Stored[Function_Name+".Channel_WavelengthsEM"]
+	Objective_Mag_Stored = Settings_Stored[Function_Name+".Objective_Mag"]
+	Objective_NA_Stored = Settings_Stored[Function_Name+".Objective_NA"]
+	Objective_Immersion_Stored = Settings_Stored[Function_Name+".Objective_Immersion"]
 
 	def Set_Data(Data_Metadata, Data_Stored, Dialog_Counter):
 		if Data_Metadata is not None and Dialog_Counter == 0:
@@ -640,6 +646,14 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	Channel_Names, Channel_Names_Source = Set_Data(Channel_Names_Metadata, Channel_Names_Stored, Dialog_Counter)
 	Channel_WavelengthsEM, Channel_WavelengthsEM_Source = Set_Data(Channel_WavelengthsEM_Metadata, Channel_WavelengthsEM_Stored, Dialog_Counter)
 
+		# Adding Channel Names and wavelengths from templates
+	if len(Channel_Names) < Nb_Channels:
+		Missing_Channel_Names = Settings_Template[Function_Name + ".Channel_Names"][len(Channel_Names):Nb_Channels]
+		Channel_Names.extend(Missing_Channel_Names)
+	if len(Channel_WavelengthsEM) < Nb_Channels:
+		Missing_Channel_WavelengthsEM = Settings_Template[Function_Name + ".Channel_WavelengthsEM"][len(Channel_WavelengthsEM):Nb_Channels]
+		Channel_WavelengthsEM.extend(Missing_Channel_WavelengthsEM)
+
 	# Preprocessing the file before displaying the dialog
 	_, Nb_Detected_Spot_File, Max_Quality_File = Run_Trackmate_All_Channel(imp, Save_File = False)
 
@@ -647,7 +661,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	_, _, _ = Run_Trackmate_Single_Channel(imp, Current_Channel, Save_File = False, Display = True)
 
 	# Create the Dialog. Sorry it is long and messy but looks good huh?
-	Processing_Dialog = JDialog(None, Plugin_Name + " " + Function_Name, False)  # "True" makes it modal
+	Processing_Dialog = JDialog(None, "{} {}".format(Plugin_Name, Function_Name), False) # 'True' makes it modal
 	Processing_Panel = JPanel()
 	Processing_Panel.setLayout(GridBagLayout())
 	Constraints = GridBagConstraints()
@@ -680,8 +694,8 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 			Constraints.insets = Insets(2, 2, 2, 2)
 			Label = "{}".format(Message)
 			J_Label = JLabel(Label)
-			J_Label.setFont(Font("Arial", Font.PLAIN, 12))
-			J_Label.setForeground(Color.BLACK)
+			J_Label.setFont(Font("Arial", Font.BOLD, 12))
+			J_Label.setForeground(Color.BLUE)
 			Processing_Panel.add(J_Label, Constraints)
 			Pos_Y += 1
 	elif not all(Spot == 1 for Spot in Nb_Detected_Spot_File):
@@ -705,8 +719,8 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 		J_Label.setForeground(Color.BLUE)
 		Processing_Panel.add(J_Label, Constraints)
 		Pos_Y += 1
-	elif  all(Spot == 1 for Spot in Nb_Detected_Spot_File):
-		Message = "Detection successful. 1 Spot per Channel. "
+	elif all(Spot == 1 for Spot in Nb_Detected_Spot_File):
+		Message = "Detection successful. 1 Spot per Channel."
 		Constraints.gridx = Pos_X
 		Constraints.gridy = Pos_Y
 		Constraints.gridwidth = GridBagConstraints.REMAINDER
@@ -817,7 +831,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 					break
 
 			if All_Valid:
-				self.Error_Label.setText("")  # Clear error message
+				self.Error_Label.setText("") # Clear error message
 				self.OK_Button.setEnabled(True)
 			else:
 				self.Error_Label.setText("Positive number required")
@@ -1124,7 +1138,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	X_Start = Pos_X + 1
 	Y_Start = Pos_Y
 	for i, Method in enumerate(Detection_Method_List):
-		Constraints.gridx = X_Start +  i
+		Constraints.gridx = X_Start + i
 		Constraints.gridy = Y_Start
 		Constraints.gridwidth = 1
 		Constraints.gridheight = 1
@@ -1134,10 +1148,10 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 		Detection_Button.setFont(Font("Arial", Font.PLAIN, 12))
 		Processing_Panel.add(Detection_Button, Constraints)
 		Detection_Group.add(Detection_Button)
-		if Method == Ch_Alignment_Settings_Stored["Ch_Alignment.Trackmate.Detection_Method"]:
+		if Method == Settings_Stored[Function_Name+".Trackmate.Detection_Method"]:
 			Detection_Button.setSelected(True)
 			global DetectionMethod
-			DetectionMethod = (Ch_Alignment_Settings_Stored["Ch_Alignment.Trackmate.Detection_Method"]).replace(" ", "")
+			DetectionMethod = (Settings_Stored[Function_Name+".Trackmate.Detection_Method"]).replace(" ", "")
 
 	# Batch Mode
 	Constraints.gridx = Pos_X + 4
@@ -1149,7 +1163,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	Label = "Batch Mode"
 	Batch_Mode_User = JCheckBox(Label)
 	Batch_Mode_User.setFont(Font("Arial", Font.BOLD, 12))
-	Batch_Mode_User.setSelected(Ch_Alignment_Settings_Stored["Ch_Alignment.Batch_Mode"])
+	Batch_Mode_User.setSelected(Settings_Stored[Function_Name+".Batch_Mode"])
 	Processing_Panel.add(Batch_Mode_User, Constraints)
 
 	Pos_Y += 1
@@ -1163,7 +1177,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	Constraints.gridheight = 1
 	Constraints.anchor = GridBagConstraints.EAST
 	Constraints.insets = Insets(2, 2, 2, 2)
-	Label_Threshold_Value = JLabel("Threshold {}".format(Ch_Alignment_Settings_Stored["Ch_Alignment.Trackmate.{}.Threshold_Value".format(DetectionMethod)]))
+	Label_Threshold_Value = JLabel("Threshold {}".format(Settings_Stored[Function_Name+".Trackmate.{}.Threshold_Value".format(DetectionMethod)]))
 	Label_Threshold_Value.setFont(Font("Arial", Font.BOLD, 12))
 	Processing_Panel.add(Label_Threshold_Value, Constraints)
 
@@ -1171,7 +1185,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	Quality_Limit = int(min(Max_Quality_File))
 	Quality_Scale = len(str(Quality_Limit))
 	Major_Tick = int(10**(Quality_Scale-1))
-	Threshold_Slider_Stored_Value = int(Ch_Alignment_Settings_Stored["Ch_Alignment.Trackmate.{}.Threshold_Value".format(DetectionMethod)])
+	Threshold_Slider_Stored_Value = int(Settings_Stored[Function_Name+".Trackmate.{}.Threshold_Value".format(DetectionMethod)])
 	Threshold_Slider_Default_Value = int(min(Threshold_Slider_Stored_Value, Quality_Limit))
 	Threshold_Slider = JSlider(0, Quality_Limit, Threshold_Slider_Default_Value)
 	Threshold_Slider.setMajorTickSpacing(Major_Tick)
@@ -1208,7 +1222,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	Label = "Save Individual Files"
 	Save_Individual_Files_User = JCheckBox(Label)
 	Save_Individual_Files_User.setFont(Font("Arial", Font.PLAIN, 12))
-	Save_Individual_Files_User.setSelected(Ch_Alignment_Settings_Stored["Ch_Alignment.Save_Individual_Files"])
+	Save_Individual_Files_User.setSelected(Settings_Stored[Function_Name+".Save_Individual_Files"])
 	Processing_Panel.add(Save_Individual_Files_User, Constraints)
 
 	# Prolix Mode
@@ -1221,7 +1235,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	Label = "Prolix Mode"
 	Prolix_Mode_User = JCheckBox(Label)
 	Prolix_Mode_User.setFont(Font("Arial", Font.PLAIN, 12))
-	Prolix_Mode_User.setSelected(Ch_Alignment_Settings_Stored["Ch_Alignment.Prolix_Mode"])
+	Prolix_Mode_User.setSelected(Settings_Stored[Function_Name+".Prolix_Mode"])
 	Processing_Panel.add(Prolix_Mode_User, Constraints)
 
 	Pos_Y += 1
@@ -1255,7 +1269,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	Constraints.gridwidth = 1
 	Constraints.gridheight = 1
 	Constraints.anchor = GridBagConstraints.CENTER
-	Text_Field =  "{}".format(Ch_Alignment_Settings_Stored["Ch_Alignment.Trackmate.{}.Spot_Diameter".format(DetectionMethod)])
+	Text_Field = "{}".format(Settings_Stored[Function_Name+".Trackmate.{}.Spot_Diameter".format(DetectionMethod)])
 	Spot_Diameter_User = JTextField(Text_Field, 6)
 	Spot_Diameter_User.setFont(Font("Arial", Font.PLAIN, 12))
 	Spot_Diameter_User.setHorizontalAlignment(JTextField.CENTER)
@@ -1271,7 +1285,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	Label = "Subpixel Precision"
 	Subpixel_Localization_User = JCheckBox(Label)
 	Subpixel_Localization_User.setFont(Font("Arial", Font.BOLD, 12))
-	Subpixel_Localization_User.setSelected(Ch_Alignment_Settings_Stored["Ch_Alignment.Trackmate.{}.Subpixel_Localization".format(DetectionMethod)])
+	Subpixel_Localization_User.setSelected(Settings_Stored[Function_Name+".Trackmate.{}.Subpixel_Localization".format(DetectionMethod)])
 	Processing_Panel.add(Subpixel_Localization_User, Constraints)
 
 
@@ -1286,7 +1300,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	Label = "Median Filtering"
 	Median_Filtering_User = JCheckBox(Label)
 	Median_Filtering_User.setFont(Font("Arial", Font.PLAIN, 12))
-	Median_Filtering_User.setSelected(Ch_Alignment_Settings_Stored["Ch_Alignment.Trackmate.{}.Median_Filtering".format(DetectionMethod)])
+	Median_Filtering_User.setSelected(Settings_Stored[Function_Name+".Trackmate.{}.Median_Filtering".format(DetectionMethod)])
 	Processing_Panel.add(Median_Filtering_User, Constraints)
 
 	Pos_Y += 1
@@ -1298,12 +1312,12 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	Constraints.gridheight = 1
 	Constraints.anchor = GridBagConstraints.EAST
 	Constraints.insets = Insets(2, 2, 2, 2)
-	Channel_Label = JLabel("Channel {}".format(Image_Info["Current_Channel"]))
+	Channel_Label = JLabel("Channel {}".format(Current_Channel))
 	Channel_Label.setFont(Font("Arial", Font.BOLD, 12))
 	Processing_Panel.add(Channel_Label, Constraints)
 
 	# Channel Slider
-	Channel_Slider = JSlider(1, Image_Info["Nb_Channels"], Image_Info["Current_Channel"])
+	Channel_Slider = JSlider(1, Nb_Channels, Current_Channel)
 	Channel_Slider.setMajorTickSpacing(1)
 	Channel_Slider.setPaintTicks(True)
 	Channel_Slider.setPaintLabels(True)
@@ -1485,29 +1499,29 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	Median_Filtering_User = Median_Filtering_User.isSelected()
 	Test_Processing_User = Test_Processing_User.isSelected()
 
-	Microscope_Settings_User = {}
-	Ch_Alignment_Settings_User = {}
+	
+	Settings_User = {}
 
 	if User_Click == "Cancel":
 		Message = "User clicked Cancel while processing {}.".format(Image_Name)
 		IJ.log(Message)
-		JOptionPane.showMessageDialog(None, Message, Plugin_Name + " " + Function_Name, JOptionPane.INFORMATION_MESSAGE)
+		JOptionPane.showMessageDialog(None, Message, "{} {}".format(Plugin_Name, Function_Name), JOptionPane.INFORMATION_MESSAGE)
 		sys.exit(Message)
 		return
-	elif User_Click == "OK":
-		Microscope_Settings_User["Ch_Alignment.Microscope.Objective_Mag"] = Objective_Mag_User
-		Microscope_Settings_User["Ch_Alignment.Microscope.Objective_NA"] = Objective_NA_User
-		Microscope_Settings_User["Ch_Alignment.Microscope.Objective_Immersion"] = Objective_Immersion_User
-		Microscope_Settings_User["Ch_Alignment.Microscope.Channel_Names"] = Channel_Names_User
-		Microscope_Settings_User["Ch_Alignment.Microscope.Channel_WavelengthsEM"] = Channel_WavelengthsEM_User
-		Ch_Alignment_Settings_User["Ch_Alignment.Trackmate.Detection_Method"] = Detection_Method_User
-		Ch_Alignment_Settings_User["Ch_Alignment.Trackmate.{}.Threshold_Value".format(DetectionMethod)] = Threshold_User
-		Ch_Alignment_Settings_User["Ch_Alignment.Trackmate.{}.Spot_Diameter".format(DetectionMethod)] = Spot_Diameter_User
-		Ch_Alignment_Settings_User["Ch_Alignment.Trackmate.{}.Subpixel_Localization".format(DetectionMethod)] = Subpixel_Localization_User
-		Ch_Alignment_Settings_User["Ch_Alignment.Trackmate.{}.Median_Filtering".format(DetectionMethod)] = Median_Filtering_User
-		Ch_Alignment_Settings_User["Ch_Alignment.Batch_Mode"] = Batch_Mode_User
-		Ch_Alignment_Settings_User["Ch_Alignment.Save_Individual_Files"] = Save_Individual_Files_User
-		Ch_Alignment_Settings_User["Ch_Alignment.Prolix_Mode"] = Prolix_Mode_User
+	elif User_Click == "OK": 
+		Settings_User[Function_Name+".Objective_Mag"] = Objective_Mag_User
+		Settings_User[Function_Name+".Objective_NA"] = Objective_NA_User
+		Settings_User[Function_Name+".Objective_Immersion"] = Objective_Immersion_User
+		Settings_User[Function_Name+".Channel_Names"] = Channel_Names_User
+		Settings_User[Function_Name+".Channel_WavelengthsEM"] = Channel_WavelengthsEM_User
+		Settings_User[Function_Name+".Trackmate.Detection_Method"] = Detection_Method_User
+		Settings_User[Function_Name+".Trackmate.{}.Threshold_Value".format(DetectionMethod)] = Threshold_User
+		Settings_User[Function_Name+".Trackmate.{}.Spot_Diameter".format(DetectionMethod)] = Spot_Diameter_User
+		Settings_User[Function_Name+".Trackmate.{}.Subpixel_Localization".format(DetectionMethod)] = Subpixel_Localization_User
+		Settings_User[Function_Name+".Trackmate.{}.Median_Filtering".format(DetectionMethod)] = Median_Filtering_User
+		Settings_User[Function_Name+".Batch_Mode"] = Batch_Mode_User
+		Settings_User[Function_Name+".Save_Individual_Files"] = Save_Individual_Files_User
+		Settings_User[Function_Name+".Prolix_Mode"] = Prolix_Mode_User
 		Test_Processing = Test_Processing_User
 		Selected_Channel = Test_Channel_User
 
@@ -1515,9 +1529,8 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 			imp.setC(Selected_Channel)
 			imp.updateAndDraw()
 			Test_Processing = True
-
-		Save_Preferences(Microscope_Settings_User)
-		Save_Preferences(Ch_Alignment_Settings_User)
+			
+		Save_Preferences(Settings_User)
 #		Prolix_Message("Updating Image Calibration for: " + Image_Name + "...")
 #		Image_Calibration = imp.getCalibration()
 #		Image_Calibration.pixelWidth = Pixel_Width_User if isinstance(Pixel_Width_User, (float, int)) else float(1)
@@ -1529,7 +1542,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 #		Prolix_Message("Updating Image Calibration: " + Image_Name + ". Done.")
 		Batch_Message = "" # Reset Batch Message
 		Dialog_Counter += 1 # Counter to ignore Metadata and use the Prefs
-	return Ch_Alignment_Settings_User, Microscope_Settings_User, User_Click, Dialog_Counter, Test_Processing, Nb_Detected_Spot_File, Batch_Message
+	return Settings_User, User_Click, Dialog_Counter, Test_Processing, Nb_Detected_Spot_File, Batch_Message
 
 
 
@@ -1537,10 +1550,11 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 # Return a Data_File a dictionnary containing the data for all Channels for a given image
 def Run_Trackmate_All_Channel(imp, Save_File): # Run on all channels.
 	Image_Info = Get_Image_Info(imp)
-	Image_Name = Image_Info["Image_Name"]
-	Prolix_Message("Processingn all channels for {}...".format(Image_Name))
-	Current_Channel = Image_Info["Current_Channel"]
-	Ch_Alignment_Settings_Stored = Read_Preferences(Settings_Templates_List["Ch_Alignment_Settings_Template"])
+	Image_Name = imp.getTitle()
+	Prolix_Message("Processing all channels for {}...".format(Image_Name))
+	Nb_Channels = imp.getNChannels()
+	Current_Channel = imp.getChannel()
+	Settings_Stored = Read_Preferences(Settings_Template)
 
 	Data_File = [] # Store the dictionnaries containing the data for each Channel
 	Nb_Detected_Spot_File = [] # Store the Nb Detected Spot for each Channel
@@ -1639,7 +1653,7 @@ def Run_Trackmate_All_Channel(imp, Save_File): # Run on all channels.
 	]
 
 	Output_Data_CSV_Path = Generate_Unique_Filepath(Output_Dir, Image_Info["Basename"], "Channel-Alignment-All-Data", ".csv")
-	if Save_File and Ch_Alignment_Settings_Stored["Ch_Alignment.Save_Individual_Files"]:
+	if Save_File and Settings_Stored[Function_Name+".Save_Individual_Files"]:
 		CSV_File = open(Output_Data_CSV_Path, "w")
 		CSV_Writer = csv.writer(CSV_File, delimiter = ",", lineterminator = "\n")
  		CSV_Writer.writerow(Data_File_Header) # Data_File is a list (1 per channel) of Dictionnary (measured variables) which values are list (1 per spot)
@@ -1656,10 +1670,8 @@ def Run_Trackmate_All_Channel(imp, Save_File): # Run on all channels.
 # Return Data_Ch a dictionnary with data for the selected Channel
 def Run_Trackmate_Single_Channel(imp, Channel, Save_File, Display):
  	Image_Info = Get_Image_Info(imp)
- 	Image_Name = Image_Info["Image_Name"]
-
- 	Ch_Alignment_Settings_Stored = Read_Preferences(Settings_Templates_List["Ch_Alignment_Settings_Template"])
- 	Microscope_Settings_Stored = Read_Preferences(Settings_Templates_List["Microscope_Settings_Template"])
+	Image_Name = imp.getTitle()
+ 	Settings_Stored = Read_Preferences(Settings_Template)
  	imp.setDisplayMode(IJ.COLOR)
 	imp.setC(Channel)
 	imp.updateAndDraw()
@@ -1668,16 +1680,16 @@ def Run_Trackmate_Single_Channel(imp, Channel, Save_File, Display):
 	Trackmate_Model.setPhysicalUnits(Image_Info["Space_Unit_Std"], Image_Info["Time_Unit"])
 	Trackmate_Settings = Settings(imp)
 
-	Detector_Method = Ch_Alignment_Settings_Stored["Ch_Alignment.Trackmate.Detection_Method"]
+	Detector_Method = Settings_Stored[Function_Name+".Trackmate.Detection_Method"]
 	Prolix_Message("Detector_Method: {}".format(Detector_Method))
 
 	global DetectionMethod # This a Variable used in to define Detector specific keys in the settings
 	DetectionMethod = Detector_Method.replace(" ", "")
 
-	Threshold = Ch_Alignment_Settings_Stored["Ch_Alignment.Trackmate.{}.Threshold_Value".format(DetectionMethod)]
-	Median_Filtering = Ch_Alignment_Settings_Stored["Ch_Alignment.Trackmate.{}.Median_Filtering".format(DetectionMethod)]
-	Radius = Ch_Alignment_Settings_Stored["Ch_Alignment.Trackmate.{}.Spot_Diameter".format(DetectionMethod)] / 2
-	Subpixel_Localization = Ch_Alignment_Settings_Stored["Ch_Alignment.Trackmate.{}.Subpixel_Localization".format(DetectionMethod)]
+	Threshold = Settings_Stored[Function_Name+".Trackmate.{}.Threshold_Value".format(DetectionMethod)]
+	Median_Filtering = Settings_Stored[Function_Name+".Trackmate.{}.Median_Filtering".format(DetectionMethod)]
+	Radius = Settings_Stored[Function_Name+".Trackmate.{}.Spot_Diameter".format(DetectionMethod)] / 2
+	Subpixel_Localization = Settings_Stored[Function_Name+".Trackmate.{}.Subpixel_Localization".format(DetectionMethod)]
 
 
 	if Detector_Method == "Dog Detector":
@@ -1705,29 +1717,29 @@ def Run_Trackmate_Single_Channel(imp, Channel, Save_File, Display):
 	if not Trackmate_Input:
 		Message = "Trackmate invalid input for {} Channel = {}".format(Image_Name, Channel)
 		IJ.log(Message)
-		Message = "Detector {}".format(Detector_Method)
+		Message = "Detector {}.".format(Detector_Method)
 		IJ.log(Message)
 		#Message = "DetectionMethod {}".format(DetectionMethod)
 		#IJ.log(Message)
-		IJ.log("Trackmate detector Settings {}".format(Trackmate_Settings.detectorSettings))
+		IJ.log("Trackmate detector Settings {}.".format(Trackmate_Settings.detectorSettings))
 		Data_Ch = None
 		Nb_Detected_Spot_Ch = 0
 		Max_Quality_Ch = 10
 	else:
 		Trackmate_Result = Trackmate_Workflow.process()
 		if not Trackmate_Result:
-			Message = "Trackmate detection failed for {} at Channel = {}".format(Image_Name, Channel)
+			Message = "Trackmate detection failed for {} at Channel = {}.".format(Image_Name, Channel)
 			IJ.log(Message)
 			Message = "Detector = {}".format(Detector_Method)
 			IJ.log(Message)
 			#Message = "DetectionMethod = {}".format(DetectionMethod)
 			#IJ.log(Message)
-			IJ.log("Trackmate detector Settings {}".format(Trackmate_Settings.detectorSettings))
+			#IJ.log("Trackmate detector Settings {},".format(Trackmate_Settings.detectorSettings))
 			Data_Ch = None
 			Nb_Detected_Spot_Ch = 0
 			Max_Quality_Ch = 10
 		else:
-			Prolix_Message("Detection successful for {}. Rendering detection".format(Image_Name))
+			Prolix_Message("Detection successful for {}. Rendering detection...".format(Image_Name))
 			Selection_Model = SelectionModel(Trackmate_Model)
 			Display_Settings = DisplaySettingsIO.readUserDefault()
 			Display_Settings.setSpotDisplayRadius(0.9)
@@ -1753,18 +1765,18 @@ def Run_Trackmate_Single_Channel(imp, Channel, Save_File, Display):
 					Prolix_Message("Tracking successful for " + str(Image_Name) + ". Storing results...")
 					Data_Ch["Filename"] = Image_Info["Filename"]
 					Data_Ch["Channel_Nb"] = Channel
-					Data_Ch["Objective_Mag"] = Microscope_Settings_Stored["Ch_Alignment.Microscope.Objective_Mag"]
-					Data_Ch["Objective_NA"] = "%.1f" % Microscope_Settings_Stored["Ch_Alignment.Microscope.Objective_NA"]
-					Data_Ch["Objective_Immersion"] = Microscope_Settings_Stored["Ch_Alignment.Microscope.Objective_Immersion"]
-					Data_Ch["Refractive_Index"] = Get_Refractive_Index(Microscope_Settings_Stored["Ch_Alignment.Microscope.Objective_Immersion"])
-					Data_Ch["Detection_Method"] = Ch_Alignment_Settings_Stored["Ch_Alignment.Trackmate.Detection_Method"]
-					Data_Ch["Spot_Diameter_Detection"] = Ch_Alignment_Settings_Stored["Ch_Alignment.Trackmate." + str(DetectionMethod) + ".Spot_Diameter"]
-					Data_Ch["Threshold_Value"] = Ch_Alignment_Settings_Stored["Ch_Alignment.Trackmate." + str(DetectionMethod) + ".Threshold_Value"]
-					Data_Ch["Subpixel_Localization"] = Ch_Alignment_Settings_Stored["Ch_Alignment.Trackmate." + str(DetectionMethod) + ".Subpixel_Localization"]
-					Data_Ch["Median_Filtering"] = Ch_Alignment_Settings_Stored["Ch_Alignment.Trackmate." + str(DetectionMethod) + ".Median_Filtering"]
-					Data_Ch["Batch_Mode"] = Ch_Alignment_Settings_Stored["Ch_Alignment.Batch_Mode"]
-					Data_Ch["Save_Individual_Files"] = Ch_Alignment_Settings_Stored["Ch_Alignment.Save_Individual_Files"]
-					Data_Ch["Prolix_Mode"] = Ch_Alignment_Settings_Stored["Ch_Alignment.Prolix_Mode"]
+					Data_Ch["Objective_Mag"] = Settings_Stored[Function_Name+".Objective_Mag"]
+					Data_Ch["Objective_NA"] = "%.1f" % Settings_Stored[Function_Name+".Objective_NA"]
+					Data_Ch["Objective_Immersion"] = Settings_Stored[Function_Name+".Objective_Immersion"]
+					Data_Ch["Refractive_Index"] = Get_Refractive_Index(Settings_Stored[Function_Name+".Objective_Immersion"])
+					Data_Ch["Detection_Method"] = Settings_Stored[Function_Name+".Trackmate.Detection_Method"]
+					Data_Ch["Spot_Diameter_Detection"] = Settings_Stored[Function_Name+".Trackmate." + str(DetectionMethod) + ".Spot_Diameter"]
+					Data_Ch["Threshold_Value"] = Settings_Stored[Function_Name+".Trackmate." + str(DetectionMethod) + ".Threshold_Value"]
+					Data_Ch["Subpixel_Localization"] = Settings_Stored[Function_Name+".Trackmate." + str(DetectionMethod) + ".Subpixel_Localization"]
+					Data_Ch["Median_Filtering"] = Settings_Stored[Function_Name+".Trackmate." + str(DetectionMethod) + ".Median_Filtering"]
+					Data_Ch["Batch_Mode"] = Settings_Stored[Function_Name+".Batch_Mode"]
+					Data_Ch["Save_Individual_Files"] = Settings_Stored[Function_Name+".Save_Individual_Files"]
+					Data_Ch["Prolix_Mode"] = Settings_Stored[Function_Name+".Prolix_Mode"]
 					Data_Ch["Width_Pix"] = Image_Info["Width"]
 					Data_Ch["Height_Pix"] = Image_Info["Height"]
 					Data_Ch["Bit_Depth"] = Image_Info["Bit_Depth"]
@@ -1786,9 +1798,9 @@ def Run_Trackmate_Single_Channel(imp, Channel, Save_File, Display):
 					Data_Ch["Spot_Diameter_Measured"] = 2 * float(Spot.getFeature("RADIUS"))
 					Data_Ch["Spot_Visibility"] = Spot.getFeature("VISIBILITY")
 					if Save_File:
-						Data_Ch["Channel_Name"] = Microscope_Settings_Stored["Ch_Alignment.Microscope.Channel_Names"][Channel-1]
-						Data_Ch["Channel_Wavelength_EM"] = Microscope_Settings_Stored["Ch_Alignment.Microscope.Channel_WavelengthsEM"][Channel-1]
-				if Save_File and Ch_Alignment_Settings_Stored["Ch_Alignment.Save_Individual_Files"] and Ch_Alignment_Settings_Stored["Ch_Alignment.Prolix_Mode"]:
+						Data_Ch["Channel_Name"] = Settings_Stored[Function_Name+".Channel_Names"][Channel-1]
+						Data_Ch["Channel_Wavelength_EM"] = Settings_Stored[Function_Name+".Channel_WavelengthsEM"][Channel-1]
+				if Save_File and Settings_Stored[Function_Name+".Save_Individual_Files"] and Settings_Stored[Function_Name+".Prolix_Mode"]:
 					Spot_Table = AllSpotsTableView(Trackmate_Model, Selection_Model, Display_Settings, Image_Info["Filename"])
 					Output_Trackmate_Spot_Data_Path = Generate_Unique_Filepath(Output_Dir, Image_Info["Basename"], "Spot-Data_Ch-0" + str(Channel), ".csv")
 					Spot_Table.exportToCsv(Output_Trackmate_Spot_Data_Path)
@@ -1798,18 +1810,19 @@ def Run_Trackmate_Single_Channel(imp, Channel, Save_File, Display):
 
 
 # Main Processing function for Channel Alignment
-def Channel_Alignment_Data_Processing(imp, Data_File): # Compute the Channel alignment  for all pair of channels
+def Channel_Alignment_Data_Processing(imp, Data_File): # Compute the Channel alignment for all pair of channels
 	# Return Data_File_Processed a list
 	Image_Info = Get_Image_Info(imp)
-	Image_Name = Image_Info["Image_Name"]
+	Image_Name = imp.getTitle()
 	Prolix_Message("Computing Ch Alignemnt Metrics for {}".format(Image_Name))
-	Nb_Channels = Image_Info["Nb_Channels"]
+	Nb_Channels = imp.getNChannels()
+	Image_Info["Nb_Channels"]
 
 	# Collect Microscope Settings
-	Microscope_Settings_Stored = Read_Preferences(Settings_Templates_List["Microscope_Settings_Template"])
-	Objective_Mag = Microscope_Settings_Stored["Ch_Alignment.Microscope.Objective_Mag"]
-	Objective_NA = Microscope_Settings_Stored["Ch_Alignment.Microscope.Objective_NA"]
-	Objective_Immersion = Microscope_Settings_Stored["Ch_Alignment.Microscope.Objective_Immersion"]
+	Settings_Stored = Read_Preferences(Settings_Template)
+	Objective_Mag = Settings_Stored[Function_Name+".Objective_Mag"]
+	Objective_NA = Settings_Stored[Function_Name+".Objective_NA"]
+	Objective_Immersion = Settings_Stored[Function_Name+".Objective_Immersion"]
 	Refractive_Index = Get_Refractive_Index(Objective_Immersion)
 	Data_Processed_File = []
 	# Loop through all pair of Channels for calculating Ch Shifts
@@ -1825,7 +1838,7 @@ def Channel_Alignment_Data_Processing(imp, Data_File): # Compute the Channel ali
 			Channel_Pair = "{} x {}".format(Channel_Name_Ch1, Channel_Name_Ch2)
 
 			# Extract position values for both channels
-		  	X_Ch1 = float(Data_Ch1["Spot_Pos_X"])
+			X_Ch1 = float(Data_Ch1["Spot_Pos_X"])
 			Y_Ch1 = float(Data_Ch1["Spot_Pos_Y"])
 			Z_Ch1 = float(Data_Ch1["Spot_Pos_Z"])
 
@@ -1855,7 +1868,7 @@ def Channel_Alignment_Data_Processing(imp, Data_File): # Compute the Channel ali
 			EMWavelength_Ch2 = float(Data_Ch2["Channel_Wavelength_EM"])
 
 			Conversion_Factors = { # Space Unit Std: Conversion factors
-			"{}m".format(Unicode_Micron_Symbol): 1000,	# 1 nm = 0.001  m
+			"{}m".format(Unicode_Micron_Symbol): 1000,	# 1 nm = 0.001 m
 			"nm": 1,		# 1 nm = 1 nm
 			"mm": 1000000,	 # 1 nm = 0.000001 mm
 			"cm": 10000000,	 # 1 nm = 0.0000001 cm
@@ -1877,7 +1890,7 @@ def Channel_Alignment_Data_Processing(imp, Data_File): # Compute the Channel ali
 			Resolution_Lateral_Theoretical_Ch2, Resolution_Axial_Theoretical_Ch2, Resolution_Lateral_Practical_Ch2, Resolution_Axial_Practical_Ch2 = Resolution_Calculator(EMWavelength_Unit_Ch2, Objective_NA, Refractive_Index, Nyquist_Ratio_Lateral_Ch2, Nyquist_Ratio_Axial_Ch2)
 
 			# Resolution is in nm must convert it to match the distance values
-			Semi_Minor_Axis = (max(Resolution_Lateral_Practical_Ch1, Resolution_Lateral_Practical_Ch2))/2  # Using the largest number to calculate the Ratios
+			Semi_Minor_Axis = (max(Resolution_Lateral_Practical_Ch1, Resolution_Lateral_Practical_Ch2))/2 # Using the largest number to calculate the Ratios
 			Semi_Major_Axis = (max(Resolution_Axial_Practical_Ch1, Resolution_Axial_Practical_Ch2))/2 # Using the largest number to calculate the Ratios
 
 			# Calculate the terms of the ellipse
@@ -1929,7 +1942,7 @@ def Channel_Alignment_Data_Processing(imp, Data_File): # Compute the Channel ali
 	global Data_Processed_File_Header
 	Data_Processed_File_Header = [
 				"Filename",
-				"Channel 1", "Channel 2",  "Name Channel 1", "Name Channel 2", "Channel Pair",
+				"Channel 1", "Channel 2", "Name Channel 1", "Name Channel 2", "Channel Pair",
 				"X Channel 1 ({})".format(Space_Unit_Std), "Y Channel 1 ({})".format(Space_Unit_Std), "Z Channel 1 ({})".format(Space_Unit_Std), "X Channel 2 ({})".format(Space_Unit_Std), "Y Channel 2 ({})".format(Space_Unit_Std), "Z Channel 2 ({})".format(Space_Unit_Std),
 				"X Shift ({})".format(Space_Unit_Std), "Y Shift ({})".format(Space_Unit_Std), "Z Shift ({})".format(Space_Unit_Std),
 				"Pixel Width ({}/px)".format(Space_Unit_Std), "Pixel Height ({}/px)".format(Space_Unit_Std), "Pixel Depth ({}/px)".format(Space_Unit_Std),
@@ -1948,8 +1961,8 @@ def Channel_Alignment_Data_Processing(imp, Data_File): # Compute the Channel ali
 				]
 
 	# Save Individual CSVs
-	Ch_Alignment_Settings_Stored = Read_Preferences(Settings_Templates_List["Ch_Alignment_Settings_Template"])
-	if Ch_Alignment_Settings_Stored["Ch_Alignment.Save_Individual_Files"]:
+	Settings_Stored = Read_Preferences(Settings_Template)
+	if Settings_Stored[Function_Name+".Save_Individual_Files"]:
 		Data_Processed_Ouput_Path = Generate_Unique_Filepath(Output_Dir, Image_Info["Basename"], "Channel-Alignment_All-Data-Processed", ".csv")
 		CSV_File = open(Data_Processed_Ouput_Path, "w")
 		CSV_Writer = csv.writer(CSV_File, delimiter = ",", lineterminator = "\n")
@@ -1979,7 +1992,7 @@ def Channel_Alignment_Data_Processing(imp, Data_File): # Compute the Channel ali
 def Nyquist_Calculator(EMWavelength_Unit, Objective_NA, Refractive_Index, Pixel_Width, Pixel_Height, Pixel_Depth):
 	Prolix_Message("Computing Nyquist values. EMWavelength_Unit: {}, Objective_NA: {}, Refractive_Index: {}, Pixel_Width: {}, Pixel_Height: {}, Pixel_Depth: {}".format(EMWavelength_Unit, Objective_NA, Refractive_Index, Pixel_Width, Pixel_Height, Pixel_Depth))
 	Nyquist_Pixel_Size_Lateral = EMWavelength_Unit / (4 * Objective_NA)
-	Theta  = asin(Objective_NA / float(Refractive_Index))
+	Theta = asin(Objective_NA / float(Refractive_Index))
 	Nyquist_Pixel_Size_Axial = EMWavelength_Unit / (2 * Refractive_Index * (1-cos(Theta)))
 	Nyquist_Ratio_Lateral = Pixel_Width / Nyquist_Pixel_Size_Lateral # Or Take the average of PixelWidth and Pixel Height for non square pixels
 	Nyquist_Ratio_Axial = Pixel_Depth / Nyquist_Pixel_Size_Axial
@@ -2017,16 +2030,16 @@ def Resolution_Calculator(EMWavelength_Unit, Objective_NA, Refractive_Index, Nyq
 
 # Calculate the Ellipse_Ratio (equation given)
 def Compute_Ellipse_Ratio(X_Ch1, Y_Ch1, Z_Ch1, X_Ch2, Y_Ch2, Z_Ch2, Semi_Minor_Axis, Semi_Major_Axis, t):
-	# Get the coordinates of a point on the Spot1 Spot2 line  for parameter t
+	# Get the coordinates of a point on the Spot1 Spot2 line for parameter t
 	x, y, z = Line(X_Ch1, Y_Ch1, Z_Ch1, X_Ch2, Y_Ch2, Z_Ch2, t)
 	# Compute the Ellipse Ratio value from this new point
 	Ellipse_Ratio = ((x - X_Ch1)**2 / Semi_Minor_Axis**2 +
-		   (y - Y_Ch1)**2 / Semi_Minor_Axis**2 +
-		   (z - Z_Ch1)**2 / Semi_Major_Axis**2)
+		 (y - Y_Ch1)**2 / Semi_Minor_Axis**2 +
+		 (z - Z_Ch1)**2 / Semi_Major_Axis**2)
 	return Ellipse_Ratio
 
 # Calculate the xyz coordinates of a point in the Spot1 Spot2 Line depedning on t
-def Line(X_Ch1,  Y_Ch1, Z_Ch1, X_Ch2, Y_Ch2, Z_Ch2, t):
+def Line(X_Ch1, Y_Ch1, Z_Ch1, X_Ch2, Y_Ch2, Z_Ch2, t):
 	x = X_Ch1 + t * (X_Ch2 - X_Ch1)
 	y = Y_Ch1 + t * (Y_Ch2 - Y_Ch1)
 	z = Z_Ch1 + t * (Z_Ch2 - Z_Ch1)
@@ -2035,10 +2048,10 @@ def Line(X_Ch1,  Y_Ch1, Z_Ch1, X_Ch2, Y_Ch2, Z_Ch2, t):
 # Find iteratively the coordinates xyz of a point at the intersection of the Spot1-Spot2 line and an ellipse with Minor and Major Axis characteristics and centered on Spot1
 def Project_on_Ellipse(X_Ch1, Y_Ch1, Z_Ch1, X_Ch2, Y_Ch2, Z_Ch2, Semi_Minor_Axis, Semi_Major_Axis, Max_Iterations, Initial_Step, Tolerance):
 	t = 0 # Starting from point X1 Y1 Z1
-	Step = Initial_Step  # Start with an initial Step size
+	Step = Initial_Step # Start with an initial Step size
 	for Iteration in range(Max_Iterations):
 		Ellipse_Ratio = Compute_Ellipse_Ratio(X_Ch1, Y_Ch1, Z_Ch1, X_Ch2, Y_Ch2, Z_Ch2, Semi_Minor_Axis, Semi_Major_Axis, t)
-		if fabs(Ellipse_Ratio - 1.0) < Tolerance:  # Close enough to 1
+		if fabs(Ellipse_Ratio - 1.0) < Tolerance: # Close enough to 1
 			# print "Found t =", t, "where Ellipse Ratio is ",Ellipse_Ratio," after ",iteration," iterations"
 			Prolix_Message("Found t = {} where Ellipse Ratio = {} after {} iterations".format(t, Ellipse_Ratio, Iteration))
 			X_Ref, Y_Ref, Z_Ref = Line(X_Ch1, Y_Ch1, Z_Ch1, X_Ch2, Y_Ch2, Z_Ch2, t) # Retrieve the Coordinates
@@ -2047,14 +2060,14 @@ def Project_on_Ellipse(X_Ch1, Y_Ch1, Z_Ch1, X_Ch2, Y_Ch2, Z_Ch2, Semi_Minor_Axis
 		# Adjust Step size
 		# The smaller the difference, the smaller the Step
 		if Ellipse_Ratio > 1.0:
-			Step = Step * 0.5  # Reduce Step
-			t -= Step  # Move backwards if Ellipse_Ratio > 1
+			Step = Step * 0.5 # Reduce Step
+			t -= Step # Move backwards if Ellipse_Ratio > 1
 		else:
-			Step = Step * 1.5  # Increase Step
-			t += Step  # Move forward  if Ellipse_Ratio < 1
+			Step = Step * 1.5 # Increase Step
+			t += Step # Move forward if Ellipse_Ratio < 1
 		# Ensure Step doesn"t become too small
-		# Step = max(Step, 0.0001)  # Prevent Step from becoming too small (optional)
-	IJ.log( "Could not compute accurate reference point coordinates aka Ellipse Ratio further than {}".format(1.0 + Tolerance))
+		# Step = max(Step, 0.0001) # Prevent Step from becoming too small (optional)
+	#IJ.log( "Could not compute accurate reference point coordinates aka Ellipse Ratio further than {}".format(1.0 + Tolerance))
 	return None
 
 
@@ -2074,7 +2087,7 @@ def Project_on_Ellipse(X_Ch1, Y_Ch1, Z_Ch1, X_Ch2, Y_Ch2, Z_Ch2, Semi_Minor_Axis
 
 # We are done with functions... Getting to work now...
 # Initializing or Resetting preferences
-Initialize_Preferences(Settings_Templates_List, Reset_Preferences)
+Initialize_Preferences(Settings_Template, Reset_Preferences)
 
 # Get some images Opened or Selected from a folder
 Image_List = Get_Images()
@@ -2089,8 +2102,8 @@ Data_All_Files, Data_Processed_All_Files, Processed_Image_List = Process_Image_L
 
 
 # Saving All Spot Data when Prolix and Save Individual Files are selected
-Ch_Alignment_Settings_Stored = Read_Preferences(Settings_Templates_List["Ch_Alignment_Settings_Template"])
-if Ch_Alignment_Settings_Stored["Ch_Alignment.Save_Individual_Files"] and Ch_Alignment_Settings_Stored["Ch_Alignment.Prolix_Mode"]:
+Settings_Stored = Read_Preferences(Settings_Template)
+if Settings_Stored[Function_Name+".Save_Individual_Files"] and Settings_Stored[Function_Name+".Prolix_Mode"]:
 	Output_Data_CSV_Path = Generate_Unique_Filepath(Output_Dir, Function_Name + "_All-Data", "Merged", ".csv")
 	Merged_Output_File = open(Output_Data_CSV_Path, "w")
 	CSV_Writer = csv.writer(Merged_Output_File, delimiter = ",", lineterminator = "\n")
@@ -2224,7 +2237,7 @@ Output_Data_Processed_File.close()
 
 
 # Log the success message indicating the number of processed images
-Message = "{} {}  successful.\n{} images have been processed.\n Files are saved in {}".format(Plugin_Name, Function_Name, len(Processed_Image_List), Output_Dir)
+Message = "{} {} successful.\n{} images have been processed.\n Files are saved in {}".format(Plugin_Name, Function_Name, len(Processed_Image_List), Output_Dir)
 IJ.log(Message)
-JOptionPane.showMessageDialog(None, Message, Plugin_Name + " " + Function_Name, JOptionPane.INFORMATION_MESSAGE)
+JOptionPane.showMessageDialog(None, Message, "{} {}".format(Plugin_Name, Function_Name), JOptionPane.INFORMATION_MESSAGE)
 java.lang.System.gc() # Cleaning up my mess ;-)
