@@ -97,6 +97,8 @@ Settings_Template = {
 # Some useful functions
 # Make Sure to get all measurements are selected in ImageJ
 IJ.run("Set Measurements...", "area mean standard modal min centroid center perimeter bounding fit shape feret's integrated median skewness kurtosis area_fraction stack redirect=None decimal=3");
+IJ.setTool("rectangle");
+IJ.run("Colors...", "foreground=white background=black selection=yellow")
 
 # Display a message in the log only in Prolix_Mode
 def Prolix_Message(Message):

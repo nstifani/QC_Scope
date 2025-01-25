@@ -105,7 +105,9 @@ Settings_Template= {
 	Function_Name+".Channel_WavelengthsEM": [425,488,555,647,730,731,732,733],
 	}
 
-
+IJ.run("Set Measurements...", "area mean standard modal min centroid center perimeter bounding fit shape feret's integrated median skewness kurtosis area_fraction stack redirect=None decimal=3");
+IJ.setTool("rectangle");
+IJ.run("Colors...", "foreground=white background=black selection=yellow")
 
 # Display a message in the log only in Prolix_Mode
 def Prolix_Message(Message):
@@ -490,7 +492,7 @@ def Process_Image(imp, Data_All_Files, Data_Processed_All_Files, Processed_Image
 	Test_Processing = False
 	while True:
 		Settings_Stored = Read_Preferences(Settings_Template)
-		
+
 
 		# Display the main dialog with Metadata and results from predetection
 		Settings_User, User_Click, Dialog_Counter, Test_Processing, Nb_Detected_Spot_File, Batch_Message = Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Message)
@@ -555,7 +557,7 @@ def Process_Image_Batch(imp, Data_All_Files, Data_Processed_All_Files, Processed
 
 	# Trying to get some metadata
 	Image_Metadata = Get_Image_Metadata(imp)
-	
+
 	# Check for presence of metadata and compare it with stored preferences
 	Batch_Message = ""
 	if Image_Metadata is not None:
@@ -590,8 +592,9 @@ def Process_Image_Batch(imp, Data_All_Files, Data_Processed_All_Files, Processed
 		else:
 			Batch_Processing = "Fail"
 	if Batch_Processing == "Pass":
-		Data_File, Nb_Detected_Spot_File, Max_Quality_File = Run_Trackmate_All_Channel(imp, Save_File = True)
+		_, Nb_Detected_Spot_File, Max_Quality_File = Run_Trackmate_All_Channel(imp, Save_File = False)
 		if all(Nb_Detected_Spot == 1 for Nb_Detected_Spot in Nb_Detected_Spot_File):
+			Data_File, _, _ = Run_Trackmate_All_Channel(imp, Save_File = True)
 			Data_All_Files.append(Data_File)
 			Data_Processed_File = Channel_Alignment_Data_Processing(imp, Data_File)
 			Data_Processed_All_Files.append(Data_Processed_File)
@@ -1499,7 +1502,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 	Median_Filtering_User = Median_Filtering_User.isSelected()
 	Test_Processing_User = Test_Processing_User.isSelected()
 
-	
+
 	Settings_User = {}
 
 	if User_Click == "Cancel":
@@ -1508,7 +1511,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 		JOptionPane.showMessageDialog(None, Message, "{} {}".format(Plugin_Name, Function_Name), JOptionPane.INFORMATION_MESSAGE)
 		sys.exit(Message)
 		return
-	elif User_Click == "OK": 
+	elif User_Click == "OK":
 		Settings_User[Function_Name+".Objective_Mag"] = Objective_Mag_User
 		Settings_User[Function_Name+".Objective_NA"] = Objective_NA_User
 		Settings_User[Function_Name+".Objective_Immersion"] = Objective_Immersion_User
@@ -1529,7 +1532,7 @@ def Display_Processing_Dialog(imp, Dialog_Counter, Test_Processing, Batch_Messag
 			imp.setC(Selected_Channel)
 			imp.updateAndDraw()
 			Test_Processing = True
-			
+
 		Save_Preferences(Settings_User)
 #		Prolix_Message("Updating Image Calibration for: " + Image_Name + "...")
 #		Image_Calibration = imp.getCalibration()
@@ -1660,7 +1663,7 @@ def Run_Trackmate_All_Channel(imp, Save_File): # Run on all channels.
 		for Data in Data_File:
 			Row = []
 			for Key in Data_File_Ordered_Keys:
-				Value = Data[Key]
+				Value = Data[Key][0]
 				Row.append(Value)
 			CSV_Writer.writerow(Row)
 		CSV_File.close()
@@ -1704,7 +1707,7 @@ def Run_Trackmate_Single_Channel(imp, Channel, Save_File, Display):
 		"RADIUS": Radius,
 		"DO_SUBPIXEL_LOCALIZATION": Subpixel_Localization,
 		}
-	Prolix_Message("Trackmate detector Settings {}".format(Trackmate_Settings.detectorSettings))
+	#Prolix_Message("Trackmate detector Settings {}".format(Trackmate_Settings.detectorSettings))
 
 	Trackmate_Settings.trackerFactory = SparseLAPTrackerFactory()
 	Trackmate_Settings.trackerSettings = Trackmate_Settings.trackerFactory.getDefaultSettings()
@@ -1734,7 +1737,7 @@ def Run_Trackmate_Single_Channel(imp, Channel, Save_File, Display):
 			IJ.log(Message)
 			#Message = "DetectionMethod = {}".format(DetectionMethod)
 			#IJ.log(Message)
-			IJ.log("Trackmate detector Settings {},".format(Trackmate_Settings.detectorSettings))
+			#IJ.log("Trackmate detector Settings {},".format(Trackmate_Settings.detectorSettings))
 			Data_Ch = None
 			Nb_Detected_Spot_Ch = 0
 			Max_Quality_Ch = 10
@@ -1758,54 +1761,95 @@ def Run_Trackmate_Single_Channel(imp, Channel, Save_File, Display):
 				Max_Quality_Ch_All_Spots.append(int(Spot.getFeature("QUALITY")))
 			Max_Quality_Ch = max(Max_Quality_Ch_All_Spots)
 			Prolix_Message("Spot Quality: {} for {} at Channel {}".format(Max_Quality_Ch_All_Spots, Image_Name, Channel))
-			Data_Ch = {}
-			if Nb_Detected_Spot_Ch == 1:
+
+			Data_Ch = {
+			"Filename": [],
+			"Channel_Nb": [],
+			"Objective_Mag": [],
+			"Objective_NA": [],
+			"Objective_Immersion": [],
+			"Refractive_Index": [],
+			"Detection_Method": [],
+			"Spot_Diameter_Detection": [],
+			"Threshold_Value": [],
+			"Subpixel_Localization": [],
+			"Median_Filtering": [],
+			"Batch_Mode": [],
+			"Save_Individual_Files": [],
+			"Prolix_Mode": [],
+			"Width_Pix": [],
+			"Height_Pix": [],
+			"Bit_Depth": [],
+			"Pixel_Width": [],
+			"Pixel_Height": [],
+			"Pixel_Depth": [],
+			"Space_Unit": [],
+			"Space_Unit_Std": [],
+			"Calibration_Status": [],
+			"Nb_Detected_Spots": [],
+			"Spot_ID": [],
+			"Spot_Quality": [],
+			"Spot_Pos_X": [],
+			"Spot_Pos_Y": [],
+			"Spot_Pos_Z": [],
+			"Spot_Pos_T": [],
+			"Spot_Frame": [],
+			"Spot_Radius": [],
+			"Spot_Diameter_Measured": [],
+			"Spot_Visibility": [],
+			"Channel_Name": [],
+			"Channel_Wavelength_EM": [],
+			}
+
+			if Nb_Detected_Spot_Ch > 0:
 			# Initialize an empty dictionary with keys that will hold lists as values
 				for Spot in Trackmate_Model.getSpots().iterable(False):
 					Prolix_Message("Tracking successful for " + str(Image_Name) + ". Storing results...")
-					Data_Ch["Filename"] = Image_Info["Filename"]
-					Data_Ch["Channel_Nb"] = Channel
-					Data_Ch["Objective_Mag"] = Settings_Stored[Function_Name+".Objective_Mag"]
-					Data_Ch["Objective_NA"] = "%.1f" % Settings_Stored[Function_Name+".Objective_NA"]
-					Data_Ch["Objective_Immersion"] = Settings_Stored[Function_Name+".Objective_Immersion"]
-					Data_Ch["Refractive_Index"] = Get_Refractive_Index(Settings_Stored[Function_Name+".Objective_Immersion"])
-					Data_Ch["Detection_Method"] = Settings_Stored[Function_Name+".Trackmate.Detection_Method"]
-					Data_Ch["Spot_Diameter_Detection"] = Settings_Stored[Function_Name+".Trackmate." + str(DetectionMethod) + ".Spot_Diameter"]
-					Data_Ch["Threshold_Value"] = Settings_Stored[Function_Name+".Trackmate." + str(DetectionMethod) + ".Threshold_Value"]
-					Data_Ch["Subpixel_Localization"] = Settings_Stored[Function_Name+".Trackmate." + str(DetectionMethod) + ".Subpixel_Localization"]
-					Data_Ch["Median_Filtering"] = Settings_Stored[Function_Name+".Trackmate." + str(DetectionMethod) + ".Median_Filtering"]
-					Data_Ch["Batch_Mode"] = Settings_Stored[Function_Name+".Batch_Mode"]
-					Data_Ch["Save_Individual_Files"] = Settings_Stored[Function_Name+".Save_Individual_Files"]
-					Data_Ch["Prolix_Mode"] = Settings_Stored[Function_Name+".Prolix_Mode"]
-					Data_Ch["Width_Pix"] = Image_Info["Width"]
-					Data_Ch["Height_Pix"] = Image_Info["Height"]
-					Data_Ch["Bit_Depth"] = Image_Info["Bit_Depth"]
-					Data_Ch["Pixel_Width"] = Image_Info["Pixel_Width"]
-					Data_Ch["Pixel_Height"] = Image_Info["Pixel_Height"]
-					Data_Ch["Pixel_Depth"] = Image_Info["Pixel_Depth"]
-					Data_Ch["Space_Unit"] = Image_Info["Space_Unit"]
-					Data_Ch["Space_Unit_Std"] = Image_Info["Space_Unit_Std"]
-					Data_Ch["Calibration_Status"] = Image_Info["Calibration_Status"]
-					Data_Ch["Nb_Detected_Spots"] = int(Nb_Detected_Spot_Ch)
-					Data_Ch["Spot_ID"] = str(Spot.ID())
-					Data_Ch["Spot_Quality"] = int(Spot.getFeature("QUALITY"))
-					Data_Ch["Spot_Pos_X"] = Spot.getFeature("POSITION_X")
-					Data_Ch["Spot_Pos_Y"] = Spot.getFeature("POSITION_Y")
-					Data_Ch["Spot_Pos_Z"] = Spot.getFeature("POSITION_Z")
-					Data_Ch["Spot_Pos_T"] = Spot.getFeature("POSITION_T")
-					Data_Ch["Spot_Frame"] = Spot.getFeature("FRAME")
-					Data_Ch["Spot_Radius"] = Spot.getFeature("RADIUS")
-					Data_Ch["Spot_Diameter_Measured"] = 2 * float(Spot.getFeature("RADIUS"))
-					Data_Ch["Spot_Visibility"] = Spot.getFeature("VISIBILITY")
+					# Append the values to the respective lists
+					Data_Ch["Filename"].append(Image_Info["Filename"])
+					Data_Ch["Channel_Nb"].append(Channel)
+					Data_Ch["Objective_Mag"].append(Settings_Stored[Function_Name + ".Objective_Mag"])
+					Data_Ch["Objective_NA"].append("%.1f" % Settings_Stored[Function_Name + ".Objective_NA"])
+					Data_Ch["Objective_Immersion"].append(Settings_Stored[Function_Name + ".Objective_Immersion"])
+					Data_Ch["Refractive_Index"].append(Get_Refractive_Index(Settings_Stored[Function_Name + ".Objective_Immersion"]))
+					Data_Ch["Detection_Method"].append(Settings_Stored[Function_Name + ".Trackmate.Detection_Method"])
+					Data_Ch["Spot_Diameter_Detection"].append(Settings_Stored[Function_Name + ".Trackmate." + str(DetectionMethod) + ".Spot_Diameter"])
+					Data_Ch["Threshold_Value"].append(Settings_Stored[Function_Name + ".Trackmate." + str(DetectionMethod) + ".Threshold_Value"])
+					Data_Ch["Subpixel_Localization"].append(Settings_Stored[Function_Name + ".Trackmate." + str(DetectionMethod) + ".Subpixel_Localization"])
+					Data_Ch["Median_Filtering"].append(Settings_Stored[Function_Name + ".Trackmate." + str(DetectionMethod) + ".Median_Filtering"])
+					Data_Ch["Batch_Mode"].append(Settings_Stored[Function_Name + ".Batch_Mode"])
+					Data_Ch["Save_Individual_Files"].append(Settings_Stored[Function_Name + ".Save_Individual_Files"])
+					Data_Ch["Prolix_Mode"].append(Settings_Stored[Function_Name + ".Prolix_Mode"])
+					Data_Ch["Width_Pix"].append(Image_Info["Width"])
+					Data_Ch["Height_Pix"].append(Image_Info["Height"])
+					Data_Ch["Bit_Depth"].append(Image_Info["Bit_Depth"])
+					Data_Ch["Pixel_Width"].append(Image_Info["Pixel_Width"])
+					Data_Ch["Pixel_Height"].append(Image_Info["Pixel_Height"])
+					Data_Ch["Pixel_Depth"].append(Image_Info["Pixel_Depth"])
+					Data_Ch["Space_Unit"].append(Image_Info["Space_Unit"])
+					Data_Ch["Space_Unit_Std"].append(Image_Info["Space_Unit_Std"])
+					Data_Ch["Calibration_Status"].append(Image_Info["Calibration_Status"])
+					Data_Ch["Nb_Detected_Spots"].append(int(Nb_Detected_Spot_Ch))
+					Data_Ch["Spot_ID"].append(str(Spot.ID()))
+					Data_Ch["Spot_Quality"].append(int(Spot.getFeature("QUALITY")))
+					Data_Ch["Spot_Pos_X"].append(Spot.getFeature("POSITION_X"))
+					Data_Ch["Spot_Pos_Y"].append(Spot.getFeature("POSITION_Y"))
+					Data_Ch["Spot_Pos_Z"].append(Spot.getFeature("POSITION_Z"))
+					Data_Ch["Spot_Pos_T"].append(Spot.getFeature("POSITION_T"))
+					Data_Ch["Spot_Frame"].append(Spot.getFeature("FRAME"))
+					Data_Ch["Spot_Radius"].append(Spot.getFeature("RADIUS"))
+					Data_Ch["Spot_Diameter_Measured"].append(2 * float(Spot.getFeature("RADIUS")))
+					Data_Ch["Spot_Visibility"].append(Spot.getFeature("VISIBILITY"))
 					if Save_File:
-						Data_Ch["Channel_Name"] = Settings_Stored[Function_Name+".Channel_Names"][Channel-1]
-						Data_Ch["Channel_Wavelength_EM"] = Settings_Stored[Function_Name+".Channel_WavelengthsEM"][Channel-1]
+						Data_Ch["Channel_Name"].append(Settings_Stored[Function_Name+".Channel_Names"][Channel-1])
+						Data_Ch["Channel_Wavelength_EM"].append(Settings_Stored[Function_Name+".Channel_WavelengthsEM"][Channel-1])
 				if Save_File and Settings_Stored[Function_Name+".Save_Individual_Files"] and Settings_Stored[Function_Name+".Prolix_Mode"]:
 					Spot_Table = AllSpotsTableView(Trackmate_Model, Selection_Model, Display_Settings, Image_Info["Filename"])
 					Output_Trackmate_Spot_Data_Path = Generate_Unique_Filepath(Output_Dir, Image_Info["Basename"], "Spot-Data_Ch-0" + str(Channel), ".csv")
 					Spot_Table.exportToCsv(Output_Trackmate_Spot_Data_Path)
 			else:
 				Data_Ch = None
+				IJ.log("Trackmate detection failed for {} at Channel = {}. No spot detected.".format(Image_Name, Channel))
 	return Data_Ch, Nb_Detected_Spot_Ch, Max_Quality_Ch
 
 
@@ -1816,7 +1860,6 @@ def Channel_Alignment_Data_Processing(imp, Data_File): # Compute the Channel ali
 	Image_Name = imp.getTitle()
 	Prolix_Message("Computing Ch Alignemnt Metrics for {}".format(Image_Name))
 	Nb_Channels = imp.getNChannels()
-	Image_Info["Nb_Channels"]
 
 	# Collect Microscope Settings
 	Settings_Stored = Read_Preferences(Settings_Template)
@@ -1825,143 +1868,145 @@ def Channel_Alignment_Data_Processing(imp, Data_File): # Compute the Channel ali
 	Objective_Immersion = Settings_Stored[Function_Name+".Objective_Immersion"]
 	Refractive_Index = Get_Refractive_Index(Objective_Immersion)
 	Data_Processed_File = []
+
 	# Loop through all pair of Channels for calculating Ch Shifts
-	for Ch1 in range(1, Nb_Channels):
-		for Ch2 in range(1, Nb_Channels):
-			Data_Ch1 = next((Data_Ch for Data_Ch in Data_File if Data_Ch["Channel_Nb"] == Ch1), None)
-			Data_Ch2 = next((Data_Ch for Data_Ch in Data_File if Data_Ch["Channel_Nb"] == Ch2), None)
+	for Ch1 in range(1, Nb_Channels+1):
+		for Ch2 in range(1, Nb_Channels+1):
+			Data_Ch1 = next((Data_Ch for Data_Ch in Data_File if Data_Ch["Channel_Nb"] == [Ch1]), None)
+			Data_Ch2 = next((Data_Ch for Data_Ch in Data_File if Data_Ch["Channel_Nb"] == [Ch2]), None)
 
-			Channel_Ch1 = int(Data_Ch1["Channel_Nb"])
-			Channel_Ch2 = int(Data_Ch2["Channel_Nb"])
-			Channel_Name_Ch1 = Data_Ch1["Channel_Name"]
-			Channel_Name_Ch2 = Data_Ch2["Channel_Name"]
-			Channel_Pair = "{} x {}".format(Channel_Name_Ch1, Channel_Name_Ch2)
+			if len(Data_Ch1["Channel_Nb"]) == 1 and len(Data_Ch2["Channel_Nb"]) == 1:
+				Channel_Ch1 = int(Data_Ch1["Channel_Nb"][0])
+				Channel_Ch2 = int(Data_Ch2["Channel_Nb"][0])
+				Channel_Name_Ch1 = Data_Ch1["Channel_Name"][0]
+				Channel_Name_Ch2 = Data_Ch2["Channel_Name"][0]
+				Channel_Pair = "{} x {}".format(Channel_Name_Ch1, Channel_Name_Ch2)
 
-			# Extract position values for both channels
-			X_Ch1 = float(Data_Ch1["Spot_Pos_X"])
-			Y_Ch1 = float(Data_Ch1["Spot_Pos_Y"])
-			Z_Ch1 = float(Data_Ch1["Spot_Pos_Z"])
+				# Extract position values for both channels
+				X_Ch1 = float(Data_Ch1["Spot_Pos_X"][0])
+				Y_Ch1 = float(Data_Ch1["Spot_Pos_Y"][0])
+				Z_Ch1 = float(Data_Ch1["Spot_Pos_Z"][0])
 
-			X_Ch2 = float(Data_Ch2["Spot_Pos_X"])
-			Y_Ch2 = float(Data_Ch2["Spot_Pos_Y"])
-			Z_Ch2 = float(Data_Ch2["Spot_Pos_Z"])
+				X_Ch2 = float(Data_Ch2["Spot_Pos_X"][0])
+				Y_Ch2 = float(Data_Ch2["Spot_Pos_Y"][0])
+				Z_Ch2 = float(Data_Ch2["Spot_Pos_Z"][0])
 
-			# Compute differences
-			Diff_X = float(X_Ch2 - X_Ch1)
-			Diff_Y = float(Y_Ch2 - Y_Ch1)
-			Diff_Z = float(Z_Ch2 - Z_Ch1)
+				# Compute differences
+				Diff_X = float(X_Ch2 - X_Ch1)
+				Diff_Y = float(Y_Ch2 - Y_Ch1)
+				Diff_Z = float(Z_Ch2 - Z_Ch1)
 
-			# Convert differences into Pixels
-			Pixel_Width = float(Image_Info["Pixel_Width"])
-			Pixel_Height = float(Image_Info["Pixel_Height"])
-			Pixel_Depth = float(Image_Info["Pixel_Depth"])
+				# Convert differences into Pixels
+				Pixel_Width = float(Image_Info["Pixel_Width"])
+				Pixel_Height = float(Image_Info["Pixel_Height"])
+				Pixel_Depth = float(Image_Info["Pixel_Depth"])
 
-			Diff_X_Pix = float(Diff_X / Pixel_Width)
-			Diff_Y_Pix = float(Diff_Y / Pixel_Height)
-			Diff_Z_Pix = float(Diff_Z / Pixel_Depth)
+				Diff_X_Pix = float(Diff_X / Pixel_Width)
+				Diff_Y_Pix = float(Diff_Y / Pixel_Height)
+				Diff_Z_Pix = float(Diff_Z / Pixel_Depth)
 
-			# Compute distances
-			Distance_Lateral, Distance_Axial, Distance_3D = Euclidean_Distance(X_Ch1, Y_Ch1, Z_Ch1, X_Ch2, Y_Ch2, Z_Ch2)
+				# Compute distances
+				Distance_Lateral, Distance_Axial, Distance_3D = Euclidean_Distance(X_Ch1, Y_Ch1, Z_Ch1, X_Ch2, Y_Ch2, Z_Ch2)
 
-			# Extract wavelengths for each Channel
-			EMWavelength_Ch1 = float(Data_Ch1["Channel_Wavelength_EM"])
-			EMWavelength_Ch2 = float(Data_Ch2["Channel_Wavelength_EM"])
+				# Extract wavelengths for each Channel
+				EMWavelength_Ch1 = float(Data_Ch1["Channel_Wavelength_EM"][0])
+				EMWavelength_Ch2 = float(Data_Ch2["Channel_Wavelength_EM"][0])
 
-			Conversion_Factors = { # Space Unit Std: Conversion factors
-			"{}m".format(Unicode_Micron_Symbol): 1000,	# 1 nm = 0.001 m
-			"nm": 1,		# 1 nm = 1 nm
-			"mm": 1000000,	 # 1 nm = 0.000001 mm
-			"cm": 10000000,	 # 1 nm = 0.0000001 cm
-			"m": 1000000000,	 # 1 nm = 0.0000000001 m
-			"in": 2540000, # 1 nm = 0.0000000393701 in (approx.)
-			"pixels": 1,	# Assuming pixels is the default unit and conversion factor for pixels is 1 (since no physical measurement)
-			}
-			Space_Unit_Std = Image_Info["Space_Unit_Std"]
+				Conversion_Factors = { # Space Unit Std: Conversion factors
+				"{}m".format(Unicode_Micron_Symbol): 1000,	# 1 nm = 0.001 m
+				"nm": 1,		# 1 nm = 1 nm
+				"mm": 1000000,	 # 1 nm = 0.000001 mm
+				"cm": 10000000,	 # 1 nm = 0.0000001 cm
+				"m": 1000000000,	 # 1 nm = 0.0000000001 m
+				"in": 2540000, # 1 nm = 0.0000000393701 in (approx.)
+				"pixels": 1,	# Assuming pixels is the default unit and conversion factor for pixels is 1 (since no physical measurement)
+				}
+				Space_Unit_Std = Image_Info["Space_Unit_Std"]
 
-			Conversion_Factor = float(Conversion_Factors[Space_Unit_Std])
+				Conversion_Factor = float(Conversion_Factors[Space_Unit_Std])
 
-			EMWavelength_Unit_Ch1 = EMWavelength_Ch1 / Conversion_Factor
-			EMWavelength_Unit_Ch2 = EMWavelength_Ch2 / Conversion_Factor
+				EMWavelength_Unit_Ch1 = EMWavelength_Ch1 / Conversion_Factor
+				EMWavelength_Unit_Ch2 = EMWavelength_Ch2 / Conversion_Factor
 
-			Nyquist_Pixel_Size_Lateral_Ch1, Nyquist_Pixel_Size_Axial_Ch1, Nyquist_Ratio_Lateral_Ch1, Nyquist_Ratio_Axial_Ch1 = Nyquist_Calculator(EMWavelength_Unit_Ch1, Objective_NA, Refractive_Index, Pixel_Width, Pixel_Height, Pixel_Depth)
-			Nyquist_Pixel_Size_Lateral_Ch2, Nyquist_Pixel_Size_Axial_Ch2, Nyquist_Ratio_Lateral_Ch2, Nyquist_Ratio_Axial_Ch2 = Nyquist_Calculator(EMWavelength_Unit_Ch2, Objective_NA, Refractive_Index, Pixel_Width, Pixel_Height, Pixel_Depth)
+				Nyquist_Pixel_Size_Lateral_Ch1, Nyquist_Pixel_Size_Axial_Ch1, Nyquist_Ratio_Lateral_Ch1, Nyquist_Ratio_Axial_Ch1 = Nyquist_Calculator(EMWavelength_Unit_Ch1, Objective_NA, Refractive_Index, Pixel_Width, Pixel_Height, Pixel_Depth)
+				Nyquist_Pixel_Size_Lateral_Ch2, Nyquist_Pixel_Size_Axial_Ch2, Nyquist_Ratio_Lateral_Ch2, Nyquist_Ratio_Axial_Ch2 = Nyquist_Calculator(EMWavelength_Unit_Ch2, Objective_NA, Refractive_Index, Pixel_Width, Pixel_Height, Pixel_Depth)
 
-			Resolution_Lateral_Theoretical_Ch1, Resolution_Axial_Theoretical_Ch1, Resolution_Lateral_Practical_Ch1, Resolution_Axial_Practical_Ch1 = Resolution_Calculator(EMWavelength_Unit_Ch1, Objective_NA, Refractive_Index, Nyquist_Ratio_Lateral_Ch1, Nyquist_Ratio_Axial_Ch1)
-			Resolution_Lateral_Theoretical_Ch2, Resolution_Axial_Theoretical_Ch2, Resolution_Lateral_Practical_Ch2, Resolution_Axial_Practical_Ch2 = Resolution_Calculator(EMWavelength_Unit_Ch2, Objective_NA, Refractive_Index, Nyquist_Ratio_Lateral_Ch2, Nyquist_Ratio_Axial_Ch2)
+				Resolution_Lateral_Theoretical_Ch1, Resolution_Axial_Theoretical_Ch1, Resolution_Lateral_Practical_Ch1, Resolution_Axial_Practical_Ch1 = Resolution_Calculator(EMWavelength_Unit_Ch1, Objective_NA, Refractive_Index, Nyquist_Ratio_Lateral_Ch1, Nyquist_Ratio_Axial_Ch1)
+				Resolution_Lateral_Theoretical_Ch2, Resolution_Axial_Theoretical_Ch2, Resolution_Lateral_Practical_Ch2, Resolution_Axial_Practical_Ch2 = Resolution_Calculator(EMWavelength_Unit_Ch2, Objective_NA, Refractive_Index, Nyquist_Ratio_Lateral_Ch2, Nyquist_Ratio_Axial_Ch2)
 
-			# Resolution is in nm must convert it to match the distance values
-			Semi_Minor_Axis = (max(Resolution_Lateral_Practical_Ch1, Resolution_Lateral_Practical_Ch2))/2 # Using the largest number to calculate the Ratios
-			Semi_Major_Axis = (max(Resolution_Axial_Practical_Ch1, Resolution_Axial_Practical_Ch2))/2 # Using the largest number to calculate the Ratios
+				# Resolution is in nm must convert it to match the distance values
+				Semi_Minor_Axis = (max(Resolution_Lateral_Practical_Ch1, Resolution_Lateral_Practical_Ch2))/2 # Using the largest number to calculate the Ratios
+				Semi_Major_Axis = (max(Resolution_Axial_Practical_Ch1, Resolution_Axial_Practical_Ch2))/2 # Using the largest number to calculate the Ratios
 
-			# Calculate the terms of the ellipse
-			#Colocalization_Ratio = ((X2 - X1) ** 2) / (Semi_Minor_Axis ** 2) + ((Y2 - Y1) ** 2) / (Semi_Minor_Axis ** 2) + ((Z2 - Z1) ** 2) / (Semi_Major_Axis ** 2)
-			Colocalization_Ratio_Lateral = Distance_Lateral / Semi_Minor_Axis
-			Colocalization_Ratio_Axial = abs(Distance_Axial) / Semi_Major_Axis
+				# Calculate the terms of the ellipse
+				#Colocalization_Ratio = ((X2 - X1) ** 2) / (Semi_Minor_Axis ** 2) + ((Y2 - Y1) ** 2) / (Semi_Minor_Axis ** 2) + ((Z2 - Z1) ** 2) / (Semi_Major_Axis ** 2)
+				Colocalization_Ratio_Lateral = Distance_Lateral / Semi_Minor_Axis
+				Colocalization_Ratio_Axial = abs(Distance_Axial) / Semi_Major_Axis
 
-			# If spots are not already colocalized project the Spot1->Spot2 vector to the Ellipse
-			if X_Ch1 != X_Ch2 and Y_Ch1 != Y_Ch2 and Z_Ch1 != Z_Ch2:
-				X_Proj, Y_Proj, Z_Proj = Project_on_Ellipse(X_Ch1, Y_Ch1, Z_Ch1, X_Ch2, Y_Ch2, Z_Ch2, Semi_Minor_Axis, Semi_Major_Axis, Max_Iterations = 1000, Initial_Step = 10, Tolerance = 1e-12)
-			else:
-				X_Proj = X_Ch1
-				Y_Proj = Y_Ch1
-				Z_Proj = Z_Ch1
+				# If spots are not already colocalized project the Spot1->Spot2 vector to the Ellipse
+				if X_Ch1 != X_Ch2 and Y_Ch1 != Y_Ch2 and Z_Ch1 != Z_Ch2:
+					X_Proj, Y_Proj, Z_Proj = Project_on_Ellipse(X_Ch1, Y_Ch1, Z_Ch1, X_Ch2, Y_Ch2, Z_Ch2, Semi_Minor_Axis, Semi_Major_Axis, Max_Iterations = 1000, Initial_Step = 10, Tolerance = 1e-12)
+				else:
+					X_Proj = X_Ch1
+					Y_Proj = Y_Ch1
+					Z_Proj = Z_Ch1
 
-			Diff_X_Ref = X_Proj - X_Ch1
-			Diff_Y_Ref = Y_Proj - Y_Ch1
-			Diff_Z_Ref = Z_Proj - Z_Ch1
+				Diff_X_Ref = X_Proj - X_Ch1
+				Diff_Y_Ref = Y_Proj - Y_Ch1
+				Diff_Z_Ref = Z_Proj - Z_Ch1
 
-			Distance_Lateral_Ref, Distance_Axial_Ref, Distance_3D_Ref = Euclidean_Distance(X_Ch1, Y_Ch1, Z_Ch1, X_Proj, Y_Proj, Z_Proj)
+				Distance_Lateral_Ref, Distance_Axial_Ref, Distance_3D_Ref = Euclidean_Distance(X_Ch1, Y_Ch1, Z_Ch1, X_Proj, Y_Proj, Z_Proj)
 
-			if Distance_3D_Ref == 0:
-				Colocalization_Ratio_3D = 0
-			else:
-				Colocalization_Ratio_3D = Distance_3D / Distance_3D_Ref
+				if Distance_3D_Ref == 0:
+					Colocalization_Ratio_3D = 0
+				else:
+					Colocalization_Ratio_3D = Distance_3D / Distance_3D_Ref
 
-			# Split the filename at each _
-			Filename = Data_Ch1["Filename"]
-			Data_Processed_Ch_Pair = [
-				Filename,
-				"Channel %02d" % Channel_Ch1, "Channel %02d" % Channel_Ch2, Channel_Name_Ch1, Channel_Name_Ch2, Channel_Pair,
-				round(X_Ch1, 2), round(Y_Ch1, 2), round(Z_Ch1, 2), round(X_Ch2, 2), round(Y_Ch2, 2), round(Z_Ch2, 2),
-				round(Diff_X, 2), round(Diff_Y, 2), round(Diff_Z, 2),
-				round(Pixel_Width, 3), round(Pixel_Height, 3), round(Pixel_Depth, 3),
-				round(Diff_X_Pix, 2), round(Diff_Y_Pix, 2), round(Diff_Z_Pix, 2),
-				round(Distance_Lateral, 2), round(Distance_Axial, 2), round(Distance_3D, 2),
-				round(Objective_NA, 2), Objective_Immersion, round(Refractive_Index, 2),
-				round(EMWavelength_Ch1, 2), round(EMWavelength_Ch2, 2), round(Conversion_Factor, 2), round(EMWavelength_Unit_Ch1, 3), round(EMWavelength_Unit_Ch2, 3),
-				round(Nyquist_Pixel_Size_Lateral_Ch1, 3), round(Nyquist_Pixel_Size_Axial_Ch1, 3), round(Nyquist_Ratio_Lateral_Ch1, 1), round(Nyquist_Ratio_Axial_Ch1, 1),
-				round(Nyquist_Pixel_Size_Lateral_Ch2, 3), round(Nyquist_Pixel_Size_Axial_Ch2, 3), round(Nyquist_Ratio_Lateral_Ch2, 1), round(Nyquist_Ratio_Axial_Ch2, 1),
-				round(Resolution_Lateral_Theoretical_Ch1, 2), round(Resolution_Axial_Theoretical_Ch1, 2), round(Resolution_Lateral_Practical_Ch1, 2), round(Resolution_Axial_Practical_Ch1, 2),
-				round(Resolution_Lateral_Theoretical_Ch2, 2), round(Resolution_Axial_Theoretical_Ch2, 2), round(Resolution_Lateral_Practical_Ch2, 2), round(Resolution_Axial_Practical_Ch2, 2),
-				round(Semi_Minor_Axis, 2), round(Semi_Major_Axis, 2),
-				round(X_Proj, 2), round(Y_Proj, 2), round(Z_Proj, 2), round(Diff_X_Ref, 2), round(Diff_Y_Ref, 2), round(Diff_Z_Ref, 2),
-				round(Distance_3D_Ref, 2),
-				round(Colocalization_Ratio_Lateral, 1), round(Colocalization_Ratio_Axial, 1), round(Colocalization_Ratio_3D, 1)
-				]
-			Data_Processed_File.append(Data_Processed_Ch_Pair)
-	global Data_Processed_File_Header
-	Data_Processed_File_Header = [
-				"Filename",
-				"Channel 1", "Channel 2", "Name Channel 1", "Name Channel 2", "Channel Pair",
-				"X Channel 1 ({})".format(Space_Unit_Std), "Y Channel 1 ({})".format(Space_Unit_Std), "Z Channel 1 ({})".format(Space_Unit_Std), "X Channel 2 ({})".format(Space_Unit_Std), "Y Channel 2 ({})".format(Space_Unit_Std), "Z Channel 2 ({})".format(Space_Unit_Std),
-				"X Shift ({})".format(Space_Unit_Std), "Y Shift ({})".format(Space_Unit_Std), "Z Shift ({})".format(Space_Unit_Std),
-				"Pixel Width ({}/px)".format(Space_Unit_Std), "Pixel Height ({}/px)".format(Space_Unit_Std), "Pixel Depth ({}/px)".format(Space_Unit_Std),
-				"X Shift (pixels)", "Y Shift (pixels)", "Z Shift (pixels)",
-				"Distance Lateral ({})".format(Space_Unit_Std), "Distance Axial ({})".format(Space_Unit_Std), "Distance 3D ({})".format(Space_Unit_Std),
-				"Objective NA","Objective Immersion", "Refractive Index",
-				"EM Wavelength Channel 1 (nm)", "EM Wavelength Channel 2 (nm)", "Conversion Factor", "EM Wavelength Channel 1 ({})".format(Space_Unit_Std),"EM Wavelength Channel 2 ({})".format(Space_Unit_Std),
-				"Nyquist Pixel Size Lateral Channel 1 ({})".format(Space_Unit_Std), "Nyquist Pixel Size Axial Channel 1 ({})".format(Space_Unit_Std), "Nyquist Ratio Lateral Channel 1 ({})".format(Space_Unit_Std), "Nyquist Ratio Axial Channel 1 ({})".format(Space_Unit_Std),
-				"Nyquist Pixel Size Lateral Channel 2 ({})".format(Space_Unit_Std), "Nyquist Pixel Size Axial Channel 2 ({})".format(Space_Unit_Std), "Nyquist Ratio Lateral Channel 2 ({})".format(Space_Unit_Std), "Nyquist Ratio Axial Channel 2 ({})".format(Space_Unit_Std),
-				"Resolution Lateral Theoretical Channel 1 ({})".format(Space_Unit_Std), "Resolution Axial Theoretical Channel 1 ({})".format(Space_Unit_Std), "Resolution Lateral Practical Channel 1 ({})".format(Space_Unit_Std), "Resolution Axial Practical Channel 1 ({})".format(Space_Unit_Std),
-				"Resolution Lateral Theoretical Channel 2 ({})".format(Space_Unit_Std), "Resolution Axial Theoretical Channel 2 ({})".format(Space_Unit_Std), "Resolution Lateral Practical Channel 2 ({})".format(Space_Unit_Std), "Resolution Axial Practical Channel 2 ({})".format(Space_Unit_Std),
-				"Distance Lateral Ref ({})".format(Space_Unit_Std), "Distance Axial Ref ({})".format(Space_Unit_Std),
-				"X Ref ({})".format(Space_Unit_Std), "Y Ref ({})".format(Space_Unit_Std), "Z Ref ({})".format(Space_Unit_Std),
-				"X Ref Shift ({})".format(Space_Unit_Std), "Y Ref Shift ({})".format(Space_Unit_Std), "Z Ref Shift ({})".format(Space_Unit_Std),
-				"Distance 3D Ref ({})".format(Space_Unit_Std), "Colocalization Ratio Lateral", "Colocalization Ratio Axial", "Colocalization Ratio 3D"
-				]
+				# Split the filename at each _
+				Filename = Image_Info["Filename"]
+				Data_Processed_Ch_Pair = [
+					Filename,
+					"Channel %02d" % Channel_Ch1, "Channel %02d" % Channel_Ch2, Channel_Name_Ch1, Channel_Name_Ch2, Channel_Pair,
+					round(X_Ch1, 2), round(Y_Ch1, 2), round(Z_Ch1, 2), round(X_Ch2, 2), round(Y_Ch2, 2), round(Z_Ch2, 2),
+					round(Diff_X, 2), round(Diff_Y, 2), round(Diff_Z, 2),
+					round(Pixel_Width, 3), round(Pixel_Height, 3), round(Pixel_Depth, 3),
+					round(Diff_X_Pix, 2), round(Diff_Y_Pix, 2), round(Diff_Z_Pix, 2),
+					round(Distance_Lateral, 2), round(Distance_Axial, 2), round(Distance_3D, 2),
+					round(Objective_NA, 2), Objective_Immersion, round(Refractive_Index, 2),
+					round(EMWavelength_Ch1, 2), round(EMWavelength_Ch2, 2), round(Conversion_Factor, 2), round(EMWavelength_Unit_Ch1, 3), round(EMWavelength_Unit_Ch2, 3),
+					round(Nyquist_Pixel_Size_Lateral_Ch1, 3), round(Nyquist_Pixel_Size_Axial_Ch1, 3), round(Nyquist_Ratio_Lateral_Ch1, 1), round(Nyquist_Ratio_Axial_Ch1, 1),
+					round(Nyquist_Pixel_Size_Lateral_Ch2, 3), round(Nyquist_Pixel_Size_Axial_Ch2, 3), round(Nyquist_Ratio_Lateral_Ch2, 1), round(Nyquist_Ratio_Axial_Ch2, 1),
+					round(Resolution_Lateral_Theoretical_Ch1, 2), round(Resolution_Axial_Theoretical_Ch1, 2), round(Resolution_Lateral_Practical_Ch1, 2), round(Resolution_Axial_Practical_Ch1, 2),
+					round(Resolution_Lateral_Theoretical_Ch2, 2), round(Resolution_Axial_Theoretical_Ch2, 2), round(Resolution_Lateral_Practical_Ch2, 2), round(Resolution_Axial_Practical_Ch2, 2),
+					round(Semi_Minor_Axis, 2), round(Semi_Major_Axis, 2),
+					round(X_Proj, 2), round(Y_Proj, 2), round(Z_Proj, 2), round(Diff_X_Ref, 2), round(Diff_Y_Ref, 2), round(Diff_Z_Ref, 2),
+					round(Distance_3D_Ref, 2),
+					round(Colocalization_Ratio_Lateral, 1), round(Colocalization_Ratio_Axial, 1), round(Colocalization_Ratio_3D, 1)
+					]
+				Data_Processed_File.append(Data_Processed_Ch_Pair)
+		global Data_Processed_File_Header
+		Data_Processed_File_Header = [
+					"Filename",
+					"Channel 1", "Channel 2", "Name Channel 1", "Name Channel 2", "Channel Pair",
+					"X Channel 1 ({})".format(Space_Unit_Std), "Y Channel 1 ({})".format(Space_Unit_Std), "Z Channel 1 ({})".format(Space_Unit_Std), "X Channel 2 ({})".format(Space_Unit_Std), "Y Channel 2 ({})".format(Space_Unit_Std), "Z Channel 2 ({})".format(Space_Unit_Std),
+					"X Shift ({})".format(Space_Unit_Std), "Y Shift ({})".format(Space_Unit_Std), "Z Shift ({})".format(Space_Unit_Std),
+					"Pixel Width ({}/px)".format(Space_Unit_Std), "Pixel Height ({}/px)".format(Space_Unit_Std), "Pixel Depth ({}/px)".format(Space_Unit_Std),
+					"X Shift (pixels)", "Y Shift (pixels)", "Z Shift (pixels)",
+					"Distance Lateral ({})".format(Space_Unit_Std), "Distance Axial ({})".format(Space_Unit_Std), "Distance 3D ({})".format(Space_Unit_Std),
+					"Objective NA","Objective Immersion", "Refractive Index",
+					"EM Wavelength Channel 1 (nm)", "EM Wavelength Channel 2 (nm)", "Conversion Factor", "EM Wavelength Channel 1 ({})".format(Space_Unit_Std),"EM Wavelength Channel 2 ({})".format(Space_Unit_Std),
+					"Nyquist Pixel Size Lateral Channel 1 ({})".format(Space_Unit_Std), "Nyquist Pixel Size Axial Channel 1 ({})".format(Space_Unit_Std), "Nyquist Ratio Lateral Channel 1 ({})".format(Space_Unit_Std), "Nyquist Ratio Axial Channel 1 ({})".format(Space_Unit_Std),
+					"Nyquist Pixel Size Lateral Channel 2 ({})".format(Space_Unit_Std), "Nyquist Pixel Size Axial Channel 2 ({})".format(Space_Unit_Std), "Nyquist Ratio Lateral Channel 2 ({})".format(Space_Unit_Std), "Nyquist Ratio Axial Channel 2 ({})".format(Space_Unit_Std),
+					"Resolution Lateral Theoretical Channel 1 ({})".format(Space_Unit_Std), "Resolution Axial Theoretical Channel 1 ({})".format(Space_Unit_Std), "Resolution Lateral Practical Channel 1 ({})".format(Space_Unit_Std), "Resolution Axial Practical Channel 1 ({})".format(Space_Unit_Std),
+					"Resolution Lateral Theoretical Channel 2 ({})".format(Space_Unit_Std), "Resolution Axial Theoretical Channel 2 ({})".format(Space_Unit_Std), "Resolution Lateral Practical Channel 2 ({})".format(Space_Unit_Std), "Resolution Axial Practical Channel 2 ({})".format(Space_Unit_Std),
+					"Distance Lateral Ref ({})".format(Space_Unit_Std), "Distance Axial Ref ({})".format(Space_Unit_Std),
+					"X Ref ({})".format(Space_Unit_Std), "Y Ref ({})".format(Space_Unit_Std), "Z Ref ({})".format(Space_Unit_Std),
+					"X Ref Shift ({})".format(Space_Unit_Std), "Y Ref Shift ({})".format(Space_Unit_Std), "Z Ref Shift ({})".format(Space_Unit_Std),
+					"Distance 3D Ref ({})".format(Space_Unit_Std), "Colocalization Ratio Lateral", "Colocalization Ratio Axial", "Colocalization Ratio 3D"
+					]
 
-	# Save Individual CSVs
-	Settings_Stored = Read_Preferences(Settings_Template)
+		# Save Individual CSVs
+		Settings_Stored = Read_Preferences(Settings_Template)
 	if Settings_Stored[Function_Name+".Save_Individual_Files"]:
 		Data_Processed_Ouput_Path = Generate_Unique_Filepath(Output_Dir, Image_Info["Basename"], "Channel-Alignment_All-Data-Processed", ".csv")
 		CSV_File = open(Data_Processed_Ouput_Path, "w")
@@ -2067,16 +2112,8 @@ def Project_on_Ellipse(X_Ch1, Y_Ch1, Z_Ch1, X_Ch2, Y_Ch2, Z_Ch2, Semi_Minor_Axis
 			t += Step # Move forward if Ellipse_Ratio < 1
 		# Ensure Step doesn"t become too small
 		# Step = max(Step, 0.0001) # Prevent Step from becoming too small (optional)
-	IJ.log( "Could not compute accurate reference point coordinates aka Ellipse Ratio further than {}".format(1.0 + Tolerance))
+	#IJ.log( "Could not compute accurate reference point coordinates aka Ellipse Ratio further than {}".format(1.0 + Tolerance))
 	return None
-
-
-
-
-
-
-
-
 
 
 
