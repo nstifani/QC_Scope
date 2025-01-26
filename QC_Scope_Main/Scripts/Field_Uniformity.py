@@ -4,7 +4,7 @@
 import os
 import sys
 import csv
-from math import sqrt, floor, asin, cos, fabs
+from math import sqrt, floor
 
 
 # Import ImageJ Features

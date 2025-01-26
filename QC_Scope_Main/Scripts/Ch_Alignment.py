@@ -592,9 +592,9 @@ def Process_Image_Batch(imp, Data_All_Files, Data_Processed_All_Files, Processed
 		else:
 			Batch_Processing = "Fail"
 	if Batch_Processing == "Pass":
-		_, Nb_Detected_Spot_File, Max_Quality_File = Run_Trackmate_All_Channel(imp, Save_File = False)
+		Data_File, Nb_Detected_Spot_File, Max_Quality_File = Run_Trackmate_All_Channel(imp, Save_File = True) # Might need to Save File here to avoid running it twice ICIT
 		if all(Nb_Detected_Spot == 1 for Nb_Detected_Spot in Nb_Detected_Spot_File):
-			Data_File, _, _ = Run_Trackmate_All_Channel(imp, Save_File = True)
+			#Data_File, _, _ = Run_Trackmate_All_Channel(imp, Save_File = True)
 			Data_All_Files.append(Data_File)
 			Data_Processed_File = Channel_Alignment_Data_Processing(imp, Data_File)
 			Data_Processed_All_Files.append(Data_Processed_File)
@@ -1587,7 +1587,7 @@ def Run_Trackmate_All_Channel(imp, Save_File): # Run on all channels.
 	"Objective_Immersion",
 	"Refractive_Index",
 	"Detection_Method",
-	"Spot_Diameter_Detection",
+	"Spot_Diameter",
 	"Threshold_Value",
 	"Subpixel_Localization",
 	"Median_Filtering",
@@ -1612,7 +1612,6 @@ def Run_Trackmate_All_Channel(imp, Save_File): # Run on all channels.
 	"Spot_Pos_T",
 	"Spot_Frame",
 	"Spot_Radius",
-	"Spot_Diameter_Measured",
 	"Spot_Visibility",
 	]
 
@@ -1626,7 +1625,7 @@ def Run_Trackmate_All_Channel(imp, Save_File): # Run on all channels.
 	"Objective Immersion Media",
 	"Immersion Media Refractive Index",
 	"Detection Method",
-	"Spot Diameter Detection ({})".format(Image_Info["Space_Unit_Std"]),
+	"Spot Diameter ({})".format(Image_Info["Space_Unit_Std"]),
 	"Threshold Value",
 	"Subpixel Localization",
 	"Median Filtering",
@@ -1651,12 +1650,11 @@ def Run_Trackmate_All_Channel(imp, Save_File): # Run on all channels.
 	"Spot Pos T ({})".format(Image_Info["Time_Unit"]),
 	"Spot Frame",
 	"Spot Radius ({})".format(Image_Info["Space_Unit_Std"]),
-	"Spot Diameter Measured ({})".format(Image_Info["Space_Unit_Std"]),
 	"Spot Visibility",
 	]
 
 	Output_Data_CSV_Path = Generate_Unique_Filepath(Output_Dir, Image_Info["Basename"], "Channel-Alignment-All-Data", ".csv")
-	if Save_File and Settings_Stored[Function_Name+".Save_Individual_Files"]:
+	if Save_File and Settings_Stored[Function_Name+".Save_Individual_Files"] and all(Data is not None for Data in Data_File):
 		CSV_File = open(Output_Data_CSV_Path, "w")
 		CSV_Writer = csv.writer(CSV_File, delimiter = ",", lineterminator = "\n")
  		CSV_Writer.writerow(Data_File_Header) # Data_File is a list (1 per channel) of Dictionnary (measured variables) which values are list (1 per spot)
@@ -1733,11 +1731,6 @@ def Run_Trackmate_Single_Channel(imp, Channel, Save_File, Display):
 		if not Trackmate_Result:
 			Message = "Trackmate detection failed for {} at Channel = {}.".format(Image_Name, Channel)
 			IJ.log(Message)
-			Message = "Detector = {}".format(Detector_Method)
-			IJ.log(Message)
-			#Message = "DetectionMethod = {}".format(DetectionMethod)
-			#IJ.log(Message)
-			#IJ.log("Trackmate detector Settings {},".format(Trackmate_Settings.detectorSettings))
 			Data_Ch = None
 			Nb_Detected_Spot_Ch = 0
 			Max_Quality_Ch = 10
@@ -1770,7 +1763,7 @@ def Run_Trackmate_Single_Channel(imp, Channel, Save_File, Display):
 			"Objective_Immersion": [],
 			"Refractive_Index": [],
 			"Detection_Method": [],
-			"Spot_Diameter_Detection": [],
+			"Spot_Diameter": [],
 			"Threshold_Value": [],
 			"Subpixel_Localization": [],
 			"Median_Filtering": [],
@@ -1795,7 +1788,6 @@ def Run_Trackmate_Single_Channel(imp, Channel, Save_File, Display):
 			"Spot_Pos_T": [],
 			"Spot_Frame": [],
 			"Spot_Radius": [],
-			"Spot_Diameter_Measured": [],
 			"Spot_Visibility": [],
 			"Channel_Name": [],
 			"Channel_Wavelength_EM": [],
@@ -1813,7 +1805,7 @@ def Run_Trackmate_Single_Channel(imp, Channel, Save_File, Display):
 					Data_Ch["Objective_Immersion"].append(Settings_Stored[Function_Name + ".Objective_Immersion"])
 					Data_Ch["Refractive_Index"].append(Get_Refractive_Index(Settings_Stored[Function_Name + ".Objective_Immersion"]))
 					Data_Ch["Detection_Method"].append(Settings_Stored[Function_Name + ".Trackmate.Detection_Method"])
-					Data_Ch["Spot_Diameter_Detection"].append(Settings_Stored[Function_Name + ".Trackmate." + str(DetectionMethod) + ".Spot_Diameter"])
+					Data_Ch["Spot_Diameter"].append(Settings_Stored[Function_Name + ".Trackmate." + str(DetectionMethod) + ".Spot_Diameter"])
 					Data_Ch["Threshold_Value"].append(Settings_Stored[Function_Name + ".Trackmate." + str(DetectionMethod) + ".Threshold_Value"])
 					Data_Ch["Subpixel_Localization"].append(Settings_Stored[Function_Name + ".Trackmate." + str(DetectionMethod) + ".Subpixel_Localization"])
 					Data_Ch["Median_Filtering"].append(Settings_Stored[Function_Name + ".Trackmate." + str(DetectionMethod) + ".Median_Filtering"])
@@ -1838,7 +1830,6 @@ def Run_Trackmate_Single_Channel(imp, Channel, Save_File, Display):
 					Data_Ch["Spot_Pos_T"].append(Spot.getFeature("POSITION_T"))
 					Data_Ch["Spot_Frame"].append(Spot.getFeature("FRAME"))
 					Data_Ch["Spot_Radius"].append(Spot.getFeature("RADIUS"))
-					Data_Ch["Spot_Diameter_Measured"].append(2 * float(Spot.getFeature("RADIUS")))
 					Data_Ch["Spot_Visibility"].append(Spot.getFeature("VISIBILITY"))
 					if Save_File:
 						Data_Ch["Channel_Name"].append(Settings_Stored[Function_Name+".Channel_Names"][Channel-1])
